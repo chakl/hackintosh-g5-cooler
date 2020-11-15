@@ -38,6 +38,8 @@ The software running on the MCU shall provide the following functionality:
 
 ## Circuit
 
+![Circuit](./Apple_Fan_PWM_Control.png)
+
 ### Power Supply
 
 The Apple fans that we want to control are voltage controlled, fan speed can be between "none" (< 2.5V) and "max" (~ 12.5V). We will use an LM317 voltage regulator, which has a drop-ot voltage of 2.5V. So in order to provide full 12V to the fans, the system needs to run at 15V Vcc.
