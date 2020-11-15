@@ -42,7 +42,7 @@ The software running on the MCU shall provide the following functionality:
 
 ### Power Supply
 
-The Apple fans that we want to control are voltage controlled, fan speed can be between "none" (< 2.5V) and "max" (~ 12.5V). We will use an LM317 voltage regulator, which has a drop-ot voltage of 2.5V. So in order to provide full 12V to the fans, the system needs to run at 15V Vcc.
+The Apple fans that we want to control are voltage controlled, fan speed can be between "none" (< 2.5V) and "max" (~ 12.5V). We will use an LM317 voltage regulator, which has a drop-out voltage of 2.5V. So in order to provide full 12V to the fans, the system needs to run at 15V Vcc.
 
 We use an old notebook power supply providing 15V DC 4 Amp, which is more than enough for the project.
 
@@ -161,11 +161,11 @@ This defines that an environmental sensor is mounted on the back of the unit. An
 
 #### WITH_HTTPSRV
 
-`WITH_HTTPSRV` controls whether the device provides an HTTP server. It is ignored if `WITH_WIFI` is not defined. Comment out to explicitly disable HTTP server.
+`WITH_HTTPSRV` controls whether the device provides an HTTP server. It is ignored if `WITH_ESP8266_WIFI` is not defined. Comment out to explicitly disable HTTP server.
 
 #### WITH_OTA
 
-`WITH_OTA` supports over-the-air updates of the code running on the MCU. It is ignored if `WITH_WIFI` is not defined. Comment out to explicitly disable OTA updates. When using `WITH_OTA`, you should disable `WITH_SERIAL`, as there is no usable serial line.
+`WITH_OTA` supports over-the-air updates of the code running on the MCU. It is ignored if `WITH_ESP8266_WIFI` is not defined. Comment out to explicitly disable OTA updates. When using `WITH_OTA`, you should disable `WITH_SERIAL`, as there is no usable serial line.
 
 #### WITH_HIGH_PWMFREQ
 
