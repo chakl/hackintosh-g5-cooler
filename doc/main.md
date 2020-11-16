@@ -32,7 +32,7 @@ The software running on the MCU shall provide the following functionality:
 * read/report temperature and humidity
   * DHT22 sensor (alternatives: AM2320, SI7021, BME280)
 * drive status LED(s) or multicolor status LED
-* provide a simple HTTP server to report status and change fan speed
+* provide a simple HTTP server to report status and change fan and water pump speed
 * for debugging, support serial console output and commands
 * support OTA (over-the-air) software updates
 
@@ -64,11 +64,11 @@ D1 and D2 are optional protection diodes that protect the LM317 against short-ci
 
 R1=100k and C3=100n build a lowpass to turn the PWM signal from the MCU into a (more or less) constant voltage. In reality, there remains a ripple voltage on the lowpass output that gets amplified and *might* lead to noticeable oscillations of fan speed.
 
-The cut-off frequency of the lowpass is calculated as (1 / 2pi RC). With the specified values, the cut-off frequency is around 16 Hz, which leaves some ripple voltage on the output when the MCU drives the PWM signal at its default PWM frequency (Arduino: 490 Hz, ESP8266: 1 kHz).
+The cut-off frequency of the lowpass is calculated as (1 / (2pi RC)). With the specified values, the cut-off frequency is around 16 Hz, which leaves some ripple voltage on the output when the MCU drives the PWM signal at its default PWM frequency (Arduino: 490 Hz, ESP8266: 1 kHz).
 
 Ripple on the fan speed control voltage turned out to be irrelevant for the brushless DC fans we are using. There were no noticable oscillations of fan rotation.
 
-Ripple could be reduced further by lowering the cut-off frequency. Which means increasing R and/or C. We don't want to use elkos here, so C won't go much higher. We are hesitating to go higher with R as well. We could build a 2nd order RC lowpass by simply adding another resistor and capacitor, using the same R and C values.
+Ripple could be reduced further by lowering the cut-off frequency. Which means increasing R and/or C. We don't want to use elkos here, so C3 won't go much higher. We are hesitating to go higher with R1 as well. We could build a 2nd order RC lowpass by simply adding another resistor and capacitor, using the same R and C values.
 
 Probably not worth the effort, as it can be improved in software by increasing the PWM frequency to >30 kHz, so the RC lowpass will be more efficient.
 
@@ -93,7 +93,7 @@ An alternative way to control fan voltage is to use a digital potentiometer rath
 * ripple is not an issue as there is no pulsed PWM signal
 * not using PWM puts less strain on the MCU
 
-It also has a major disadvantage: it is way more expensive. We payed around 4.50€ for the MCP4162, while the OpAmp, resitors and capacitors needed for PWM cost around 0.50€ altogether. So this is merely an academic exercise.
+It also has a major disadvantage: it is way more expensive. We payed around 4.50€ for the MCP4162, while the OpAmp, resitors and capacitors needed for PWM cost around 0.50€ altogether. So this is merely an academic exercise. Also, since the MCP4162 uses SPI, at least 4 more lines need to be connected.
 
 One important thing to check is that the current through the digipot does not exceed the maximum value specified in the digipot's datasheet, otherwise the unit will get destroyed. A MCP4162 digipot allows a maximum current of 2.5mA through its "resistor" pins. According to LM317 datasheet, the maximum current flowing out of the ADJ pin to GND through the digipot will be <0.1mA, so we should be safe.
 
@@ -103,9 +103,9 @@ Voltages can be measured with a MCU using analog input pin in combination with a
 
 Details vary between Arduino and ESP8266 boards:
 
-Arduinos have 4 analog input pins that can accept max 5V. For max 12.5V output voltage, good resistor values would be R6=33k / R7=22k. We chose R7=18k for some safety margin, so we can measure up to 14.1V without risk of damaging the Arduino analog input ports.
+Arduinos have 8 analog input pins that can accept max 5V. For max 12.5V output voltage, good resistor values would be R6=33k / R7=22k. We chose R7=18k for some safety margin, so we can measure up to 14.1V without risk of damaging the Arduino analog input ports.
 
-ESP8266-12 MCUs have only one analog input pin that can accept max 1V, while the small ESP8266-01 MCUs have no analog input pin at all. Various boards use the ESP8266-12 MCU and have an integrated 220k/100k voltage divider that would allow up to 3.2V on the boards analog input. For these boards, only a single resistor needs to provided, which adds to the internal voltage divider. With a 1M resistor we can measure up to 13.2V  without risk of damaging the ESP analog input port.
+ESP8266-12 MCUs have only one analog input pin that can accept max 1V, while the small ESP8266-01 MCUs have no analog input pin at all. Various boards use the ESP8266-12 MCU and have an integrated 220k/100k voltage divider that would allow up to 3.2V on the boards analog input. For these boards, only a single resistor needs to provided, which adds to the internal voltage divider. With a 1M resistor we can measure up to 13.2V  without risk of damaging the ESP analog input port. It would be possible to add more analog inputs by using a 74HC405x port multiplexer.
 
 ### Water Pump Power Supply and Water Pump Voltage Measurement
 
@@ -124,7 +124,7 @@ We considered DHT11, DHT22, AM2320, SI7021 and BME280 environmental sensors. We 
 * unlike AM2320, the plastic cover has a nose with a mounting hole which helps mechanical fitting
 * unlike DHT11, it is sufficiently precise
 
-The sensor will be mounted 30-50cm away from the MCU board. It needs 3 lines for signal, Vcc and GND, so we chose shielded stereo audio cable for the connection.
+The sensor will be mounted 30-50cm away from the MCU board. It needs 3 lines for signal, 5V Vcc and GND, so we chose shielded stereo audio cable for the connection.
 
 ## Software
 
@@ -138,41 +138,52 @@ The software is designed to be modular. Configuration settings are defined by C 
 
 The code is heavily #ifdef'd in order to keep to resulting code small by not compiling deconfigured stuff.
 
-#### WITH_REAR_FANS and WITH_REAR_FANS_VOLTAGE
+#### PWM Usage
+
+Controlling DC devices by PWM is a core concept of Arduino-like MCUs. By default, rather low PWM frequencies are used (Arduino: 490Hz, ESP8266: 1kHz). Higher PWM frequencies provide finer resolution at the cost of more MCU workload (interrupts). Higher PWM frequencies also reduce ripple voltage after the RC lowpass. Both of these improvements are not really needed just to drive fans by PWM.
+
+However, using PWM with the default low PWM frequencies may affect other devices and libraries used by the MCU. We noticed a DHT22 sensor was occasionally reporting invalid values in combination with a low PWM frequency - possibly because the DHT22 driver uses timing related code internally. The same issue may be relevant when using bus technologies such as SPI or I2C.
+
+We use an increased PWM frequency of >30kHz by default. This can be disabled for debugging by commenting out `#define WITH_HIGH_PWMFREQ`.
+
+#### Configuration `#define` Options
+
+##### WITH_REAR_FANS and WITH_REAR_FANS_VOLTAGE
 
 `WITH_REAR_FANS` allows to control the rear fans from the MCU, which is the main project goal anyway. Might be disabled for testing purposes. `WITH_REAR_FANS_VOLTAGE` allows to measure fan voltage and report it by HTTP or serial console if configured.
 
-#### WITH_WATER_PUMP and WITH_WATER_PUMP_VOLTAGE
+##### WITH_WATER_PUMP and WITH_WATER_PUMP_VOLTAGE
 
 `WITH_WATER_PUMP` allows to control water pump power from the MCU. Might be disabled for testing purposes. `WITH_WATER_PUMP_VOLTAGE` allows to measure water pump voltage and report it by HTTP or serial console if configured. Note that ESP8266 provide only one analog input, so either fans or pump voltage can be monitored.
 
-#### WITH_REAR_ENV_SENSOR
+##### WITH_REAR_ENV_SENSOR
 
 This defines that an environmental sensor is mounted on the back of the unit. An environmental sensor reads and reports at least temperature und humidity data. Currently supported sensors are DHT22, possibly supported sensors might be AM2320, SI7021 or BMEx80. If configured, the sensor will report data by HTTP or serial console if these channels are enabled.
 
-#### WITH_SERIAL and WITH_SERIAL_COMMANDS
+##### WITH_SERIAL and WITH_SERIAL_COMMANDS
 
 `WITH_SERIAL` is useful for debugging with the MCU attached to an IDE. It will print startup messages and periodical sensor value data to the serial console. In production use without a permanently connected serial console, it should be commented out, because it will claim runtime memory for string operations that are never consumed. Similarily, it should be disabled if WITH_OTA is used (because there is no serial console on OTA).
 `WITH_SERIAL_COMMANDS` allows to actively inject commands from the serial console, rather than just passively reporting status. It requires `WITH_SERIAL` and is ignored otherwise.
 
-#### WITH_ESP8266_WIFI
+##### WITH_ESP8266_WIFI
 
 `WITH_ESP8266_WIFI` will be defined automatically if WiFi capable hardware is detected. Comment out to explicitly disable WiFi.
 
-#### WITH_HTTPSRV
+##### WITH_HTTPSRV
 
 `WITH_HTTPSRV` controls whether the device provides an HTTP server. It is ignored if `WITH_ESP8266_WIFI` is not defined. Comment out to explicitly disable HTTP server.
 
-#### WITH_OTA
+##### WITH_OTA
 
 `WITH_OTA` supports over-the-air updates of the code running on the MCU. It is ignored if `WITH_ESP8266_WIFI` is not defined. Comment out to explicitly disable OTA updates. When using `WITH_OTA`, you should disable `WITH_SERIAL`, as there is no usable serial line.
 
-#### WITH_HIGH_PWMFREQ
+##### WITH_HIGH_PWMFREQ
 
 This increases the PWM frequency from 490 Hz to 31372.55 Hz (Arduino), or from 1 kHz to 32 kHz (ESP8266). This is recommended when using PWM for rear fans or pump voltage control, because it reduces the possibility of interference with other sensors or libraries (we noticed a DHT22 reporting bad values when low PWM frequencies were used).
 
 ## References
 
+* G5 (dis-)assembly and pinouts: https://www.applerepairmanuals.com/the_manuals_are_in_here/PowerMac_G5.pdf
 * G5 pinouts: https://kettek.net/articles/powermac-g5-to-atx-pinouts
 * G5 fan wiring: https://www.insanelymac.com/forum/topic/86729-wiring-for-g5-fans/
 * Helpful for G5 fan pinouts (rest is misleading): https://www.rellimmot.com/how-to/Mac-Fan-Pinouts/
@@ -191,7 +202,6 @@ This increases the PWM frequency from 490 Hz to 31372.55 Hz (Arduino), or from 1
 
 * Nice voltage divider calculator: https://ohmslawcalculator.com/voltage-divider-calculator
 
-* Voltage measurement: https://startingelectronics.org/articles/arduino/measuring-voltage-with-arduino/#:~:text=Arduino%20analog%20inputs%20can%20be,to%20create%20a%20voltage%20divider.
-
+* Voltage measurement: https://startingelectronics.org/articles/arduino/measuring-voltage-with-arduino/
 * MCP4162: https://tronixstuff.com/category/mcp4162/
-* MCP4162: https://github.com/phanrahan/arduino/tree/master/MCP4162https://github.com/phanrahan/arduino/tree/master/MCP4162
+* MCP4162: https://github.com/phanrahan/arduino/tree/master/MCP4162
