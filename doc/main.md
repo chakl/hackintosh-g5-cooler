@@ -199,6 +199,7 @@ This increases the PWM frequency from 490 Hz to 31372.55 Hz (Arduino), or from 1
 * Helpful for G5 fan pinouts (rest is misleading): https://www.rellimmot.com/how-to/Mac-Fan-Pinouts/
 * Details on G5 fans: https://www.tonymacx86.com/threads/info-on-g5-fans.69889/
 * More details on G5 fans (posts #12 and #16): https://www.tonymacx86.com/threads/macpro-fan-pinout.122584/page-2
+* G5 front panel pinout (post #3): https://gradivis.com/projects/topic/powermac-g5-resource-page
 
 * PWM to DC voltage: https://www.edn.com/control-an-lm317t-with-a-pwm-signal/
 * PWM to DC voltage: https://electronics.stackexchange.com/questions/17852/how-does-this-power-supply-circuit-work-mcu-lm317
