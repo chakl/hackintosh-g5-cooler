@@ -8,7 +8,13 @@
 
 ## Apple G5 Fans
 
-...
+The Apple G5 fans (at least the rear ones that we care about) are different from typical PC fans: they are voltage driven instead of PWM driven. This means fan speed is controlled by a voltage level between around 2.5V to 12.5V at the fan speed pin, rather than providing a pulsed 12V signal.
+
+The fans have 4 wires each (Vcc, GND, speed, sense). The two rear fans share a 6pin connector, where the Vcc and GND pins are used by both fans. They are brushless DC fans and probably have some internal circuitry (we did not open them), so a fixed Vcc voltage needs to be provided. That would probably be 12V, we have used 15V Vcc without issues. It did not work with only 5V on the fans Vcc pins.
+
+Fan speed is controlled by variable voltage on the fans speed pins. Fans start to spinup at >2.5V and can be driven to >12V for full speed. Fan speed increases linear with speed voltage. The fan speed connection also needs to provide enough current. We tried to use a voltage divider trimmer pot, but the fans would not move in most pot positions because the resistor was limiting the current on the speed pin. We have not measured the current on the rear fans, but a rough guess would be that at least 100mA need to be provided on the fan speed pin. We use a LM317 regulator to provide the required voltage and current to the fan speed pin.
+
+We have not used the fans rotation speed sense pins yet.
 
 ## Microcontroller
 
@@ -31,7 +37,10 @@ The software running on the MCU shall provide the following functionality:
 * read/report/warn on water tank low/high
 * read/report temperature and humidity
   * DHT22 sensor (alternatives: AM2320, SI7021, BME280)
-* drive status LED(s) or multicolor status LED
+* keep G5 front panel
+  * power button and power LED
+  * USB as power supply for external devices (no USB data)
+  * place additional LED or bicolor LED in audio connector
 * provide a simple HTTP server to report status and change fan and water pump speed
 * for debugging, support serial console output and commands
 * support OTA (over-the-air) software updates
@@ -48,9 +57,10 @@ We use an old notebook power supply providing 15V DC 4 Amp, which is more than e
 
 ### MCU Power Supply
 
-We use a 7805 fixed voltage regulator to provide 5V Vcc to the microcontroller. Arduinos need 5V, while most ESP boards can be powered by 5V, even though they use 3.3V internally.
+We use a LM7805 fixed voltage regulator to provide 5V Vcc to the microcontroller. Arduinos need 5V, while most ESP boards can be powered by 5V, even though they use 3.3V internally.
 
-We use a low-power 78L05 for this, as we don't expect the MCU to draw more than 100mA. Capacitors C1, C2 use recommended values from the datasheet on both Vin/Vout sides.
+We planned to use a low-power 78L05 for this, as we did not expect the (Arduino) MCU to draw more than 100mA. Capacitors C1, C2 use recommended values from the datasheet on both Vin/Vout sides.
+However, the decision to use an ESP8266 MCU requires a more powerful voltage regulator, as these devices draw around 150mA in normal operation and are specified with a peak current draw of 450mA. We could have used an AMS1117 3.3 regulator that we had in the drawer, but we want a 5V power supply (to deliver 5V to the front panel USB connector).
 
 ### Fan Power Supply
 
