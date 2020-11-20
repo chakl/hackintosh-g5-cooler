@@ -67,7 +67,7 @@ IPAddress ip;
 #include <ArduinoOTA.h>
 #endif
 
-#ifdef WITH_HTTPSRV
+#ifdef WITH_ESP8266_HTTPSRV
 #include <ESP8266WebServer.h>
 #include <uri/UriBraces.h>
 //#include <uri/UriRegex.h>
@@ -157,7 +157,7 @@ void loop()
     }
 #endif
 
-#ifdef WITH_HTTPSRV
+#ifdef WITH_ESP8266_HTTPSRV
     // handle HTTP client
     webserver.handleClient();
 #endif
@@ -422,7 +422,7 @@ void connect_wifi_esp8266()
 #endif
 }
 
-#ifdef WITH_HTTPSRV
+#ifdef WITH_ESP8266_HTTPSRV
 /* functions for embedded web server */
 // Handle Root URI
 void rootPage() {
@@ -475,7 +475,7 @@ void start_web_server() {
     webserver.begin();
 }
 
-#endif  // WITH_HTTPSRV
+#endif  // WITH_ESP8266_HTTPSRV
 
 void init_esp8266_wifi() {
     connect_wifi_esp8266();
@@ -520,7 +520,7 @@ void init_esp8266_wifi() {
     ArduinoOTA.begin();
 #endif  // WITH_OTA
 
-#ifdef WITH_HTTPSRV
+#ifdef WITH_ESP8266_HTTPSRV
     start_web_server();
 #endif
 }

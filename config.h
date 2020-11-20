@@ -63,13 +63,19 @@
   // use WIFI (comment out to disable)
   #define WITH_ESP8266_WIFI
   // run HTTP server (requires WITH_ESP8266_WIFI, otherwise ignored)
-  #define WITH_HTTPSRV
+  #define WITH_ESP8266_HTTPSRV
   #define HTTPSRV_PORT 80
   // support over-the-air updates (requires WITH_ESP8266_WIFI, otherwise ignored)
   #define WITH_OTA
   #define OTA_PORT 8266
   #define OTA_HOSTNAME "wemos_d1"
 #endif  // HW_ESP8266
+
+// support WIFI features if hardware is ESP8266
+#ifdef HW_ARDUINO
+  // use WIFI (set only if an ESP8266-01 is attached)
+  //#define WITH_MODEM_WIFI
+#endif  // HW_ARDUINO
 
 // serial console for debugging
 #define WITH_SERIAL
