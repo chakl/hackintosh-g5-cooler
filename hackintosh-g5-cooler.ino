@@ -276,11 +276,11 @@ void setRearFansSpeedPercent(long speed) {
       rearFansSpeedPercent = speed;
     }
   #if REAR_FANS_CONTROL == PWM_CONTROL
-    rearFansPwmValue = (rearFansSpeedPercent / 100) * (ANALOG_WRITE_RANGE - 1);
+    rearFansPwmValue = (rearFansSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(REAR_FANS_PWM_PIN, rearFansPwmValue);
   #endif
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
-    rearFansSPIValue = (rearFansSpeedPercent / 100) * (SPI_WRITE_RANGE - 1);
+    rearFansSPIValue = (rearFansSpeedPercent / 100.0) * (SPI_WRITE_RANGE - 1);
     writeSPIvalue(SPI_SELECT_REAR_FANS_PIN, rearFansSPIValue);
   #endif
 }
@@ -336,7 +336,7 @@ void setPumpSpeedPercent(long speed) {
       pumpSpeedPercent = speed;
     }
   #if WATER_PUMP_CONTROL == PWM_CONTROL
-    pumpPwmValue = (pumpSpeedPercent / 100) * (ANALOG_WRITE_RANGE - 1);
+    pumpPwmValue = (pumpSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(WATER_PUMP_PWM_PIN, pumpPwmValue);
   #endif
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
