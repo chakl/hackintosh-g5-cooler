@@ -77,13 +77,16 @@
   //#define WITH_MODEM_WIFI
 #endif  // HW_ARDUINO
 
-// serial console for debugging
+// serial console
 #define WITH_SERIAL
 #define SERIAL_BAUD 115200
 #define SERIAL_DELAY 2000
 #define SERIAL_REPORT_INTERVAL 5000
 // accept commands from the serial console (requires WITH_SERIAL, otherwise ignored)
 #define WITH_SERIAL_COMMANDS
+
+// debugging (requires WITH_SERIAL, otherwise ignored)
+#define WITH_DEBUG
 
 // recommended
 #define WITH_HIGH_PWMFREQ

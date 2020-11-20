@@ -87,6 +87,10 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #define USE_SPI
 #endif
 
+#if defined(WITH_SERIAL) && defined(WITH_DEBUG)
+#define USE_SERIAL_DEBUG
+#endif
+
 //-------------------------------------------------------------------------------------------
 // setup()
 //-------------------------------------------------------------------------------------------
@@ -193,11 +197,20 @@ void loop()
 
 #ifdef USE_SPI
 void init_spi() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize SPI..."));
+  #endif
     SPI.begin();
     SPI.setBitOrder(MSBFIRST);  // needed for MCP4162
 }
 
 void writeSPIvalue(int line, int value) {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Write "));
+    Serial.print(value);
+    Serial.print(F(" to SPI line "));
+    Serial.println(line);
+  #endif
     digitalWrite(line, LOW);
     SPI.transfer( (value & 0x100) ? 1 : 0 );
     SPI.transfer( value & 0xff ); // send value (0~255)
@@ -208,7 +221,7 @@ void writeSPIvalue(int line, int value) {
 
 #ifdef USE_HIGH_PWMFREQ
 void init_pwmfreq() {
-  #ifdef WITH_SERIAL
+  #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Using PWM frequency >30kHz"));
   #endif
   #ifdef HW_ARDUINO
@@ -225,6 +238,9 @@ void init_pwmfreq() {
  */
 void set_pwm_freq_arduino()
 {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize PWM frequency..."));
+  #endif
 // For Arduino Uno, Nano, YourDuino RoboRED, Mini Driver, Lilly Pad and any other board using ATmega 8, 168 or 328
 //---------------------------------------------- Set PWM frequency for D5 & D6 -------------------------------
 //NOTE: Changing this timer 0 affects millis() and delay!
@@ -256,6 +272,9 @@ void set_pwm_freq_arduino()
 /* functions for rear fans */
 
 void init_rear_fans() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize rear fans to zero..."));
+  #endif
   #if REAR_FANS_CONTROL == PWM_CONTROL
     pinMode(REAR_FANS_PWM_PIN, OUTPUT);
     // initialize fans at zero speed
@@ -275,6 +294,10 @@ void setRearFansSpeedPercent(long speed) {
     } else {
       rearFansSpeedPercent = speed;
     }
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Set rear fans speed% to "));
+    Serial.println(rearFansSpeedPercent);
+  #endif
   #if REAR_FANS_CONTROL == PWM_CONTROL
     rearFansPwmValue = (rearFansSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(REAR_FANS_PWM_PIN, rearFansPwmValue);
@@ -320,6 +343,9 @@ void read_rear_fans_voltage() {
 
 // called from setup()
 void init_water_pump() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize water pump to zero..."));
+  #endif
   #if WATER_PUMP_CONTROL == PWM_CONTROL
     pinMode(WATER_PUMP_PWM_PIN, OUTPUT);
     // initialize pump at zero speed
@@ -335,6 +361,10 @@ void setPumpSpeedPercent(long speed) {
     } else {
       pumpSpeedPercent = speed;
     }
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Set pump speed% to "));
+    Serial.println(pumpSpeedPercent);
+  #endif
   #if WATER_PUMP_CONTROL == PWM_CONTROL
     pumpPwmValue = (pumpSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(WATER_PUMP_PWM_PIN, pumpPwmValue);
@@ -377,20 +407,21 @@ void read_water_pump_voltage() {
 #ifdef WITH_REAR_ENV_SENSOR
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
 /* functions for rear DHT22 env sensor */
+void init_rear_env_sensor() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize DHT22 sensor..."));
+  #endif
+    // maybe adjust DHT22 sensor offsets (example)
+    //rearDHT22Sensor.setHumOffset(10);
+    //rearDHT22Sensor.setTempOffset(-3.5);
+}
+
 void read_rear_dht22() {
     rearDHT22Sensor.read();
     rearEnvSensorHumidity    = rearDHT22Sensor.getHumidity();
     rearEnvSensorTemperature = rearDHT22Sensor.getTemperature();
 }
 #endif
-
-void init_rear_env_sensor() {
-#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
-    // maybe adjust DHT22 sensor offsets (example)
-    //rearDHT22Sensor.setHumOffset(10);
-    //rearDHT22Sensor.setTempOffset(-3.5);
-#endif
-}
 #endif  // WITH_REAR_ENV_SENSOR
 
 
@@ -399,27 +430,27 @@ void init_rear_env_sensor() {
 void connect_wifi_esp8266()
 {
     // Connect to WiFi network
-#ifdef WITH_SERIAL
+  #ifdef USE_SERIAL_DEBUG
     Serial.println();
     Serial.print(F("Connecting to "));
     Serial.println(WIFI_SSID);
-#endif
+  #endif
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-#ifdef WITH_SERIAL
+  #ifdef USE_SERIAL_DEBUG
       Serial.print(F("."));
-#endif
+  #endif
     }
     ip = WiFi.localIP();
 
-#ifdef WITH_SERIAL
+  #ifdef USE_SERIAL_DEBUG
     Serial.println();
     Serial.print(F("Connected to "));
     Serial.println(WIFI_SSID);
     Serial.print(F("IP address: "));
     Serial.println(ip);
-#endif
+  #endif
 }
 
 #ifdef WITH_ESP8266_HTTPSRV
@@ -517,10 +548,18 @@ void init_esp8266_wifi() {
       }
     });
 #endif  // WITH_SERIAL
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Start OTA on port "));
+    Serial.println(OTA_PORT);
+  #endif
     ArduinoOTA.begin();
 #endif  // WITH_OTA
 
 #ifdef WITH_ESP8266_HTTPSRV
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Start web server on port "));
+    Serial.println(HTTPSRV_PORT);
+  #endif
     start_web_server();
 #endif
 }
@@ -532,8 +571,10 @@ void init_esp8266_wifi() {
 void init_serial() {
     Serial.begin(SERIAL_BAUD);
     delay(SERIAL_DELAY);  // grace period for reinit after reboot
+  #ifdef USE_SERIAL_DEBUG
     Serial.print(F("Detected Board: "));
     Serial.println(HW_NAME);
+  #endif
 }
 
 void serial_report_values() {
