@@ -7,7 +7,7 @@
   #define WATER_PUMP_PWM_PIN 11
   #define WATER_PUMP_VOLTAGE_PIN A1
   #define REAR_ENV_SENSOR_PIN 8
-  // SPI pins, if used
+  // SPI pins, if used (for MCP4162)
   #define SPI_SELECT_REAR_FANS_PIN 10
   #define SPI_SELECT_WATER_PUMP_PIN 9
   #define SPI_MOSI_PIN 11
@@ -22,7 +22,7 @@
   //#define WATER_PUMP_PWM_PIN 12       // D6
   //#define WATER_PUMP_VOLTAGE_PIN A0
   #define REAR_ENV_SENSOR_PIN 5       // D1
-  // SPI pins, if used
+  // SPI pins, if used (for MCP4162)
   #define SPI_SELECT_REAR_FANS_PIN 15 // D8
   #define SPI_SELECT_WATER_PUMP_PIN 4 // D2
   #define SPI_MOSI_PIN 13             // D7
@@ -56,7 +56,7 @@
 // support rear temperature/humidity sensor
 #define WITH_REAR_ENV_SENSOR
 #define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
-#define REAR_ENV_SENSOR_READ_INTERVAL 2000     // 2 secs
+#define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support WIFI features if hardware is ESP8266
 #ifdef HW_ESP8266
@@ -68,10 +68,10 @@
   // support over-the-air updates (requires WITH_ESP8266_WIFI, otherwise ignored)
   #define WITH_OTA
   #define OTA_PORT 8266
-  #define OTA_HOSTNAME "wemos_d1"
+  #define OTA_HOSTNAME "g5-cooler"
 #endif  // HW_ESP8266
 
-// support WIFI features if hardware is ESP8266
+// support WIFI features if hardware is Arduino
 #ifdef HW_ARDUINO
   // use WIFI (set only if an ESP8266-01 is attached)
   //#define WITH_MODEM_WIFI
