@@ -13,6 +13,12 @@
   #error "Unsupported board!"
 #endif
 
+// constants for type of LM317 voltage control
+#define PWM_CONTROL 0
+#define MCP4162_CONTROL 1
+// constants for sensor types
+#define DHT22_SENSOR 0
+
 //---------------------------------------------------------------------------------------------------------------------
 // include config from separate file
 //---------------------------------------------------------------------------------------------------------------------
@@ -47,7 +53,7 @@ long  lastReadPumpVoltage      = 0;
 #ifdef WITH_REAR_ENV_SENSOR
 float rearEnvSensorTemperature = 0;
 float rearEnvSensorHumidity    = 0;
-#if REAR_ENV_SENSOR_TYPE == DHT22
+#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
   DHTNEW rearDHT22Sensor(REAR_ENV_SENSOR_PIN);
 #endif
@@ -70,12 +76,12 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #endif  // WITH_ESP8266_WIFI
 
 #ifdef WITH_HIGH_PWMFREQ
-#if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == PWM) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == PWM)
+#if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == PWM_CONTROL) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == PWM_CONTROL)
 #define USE_HIGH_PWMFREQ
 #endif
 #endif
 
-#if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == MCP4162) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == MCP4162)
+#if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == MCP4162_CONTROL) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == MCP4162_CONTROL)
 #include "SPI.h"
 #define SPI_WRITE_RANGE 256
 #define USE_SPI
@@ -130,7 +136,7 @@ void loop()
     ArduinoOTA.handle();
 #endif
 
-#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == DHT22
+#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
     // read rear environment sensor
     if ((millis() - rearDHT22Sensor.lastRead()) > REAR_ENV_SENSOR_READ_INTERVAL) {
       read_rear_dht22();
@@ -250,12 +256,12 @@ void set_pwm_freq_arduino()
 /* functions for rear fans */
 
 void init_rear_fans() {
-  #if REAR_FANS_CONTROL == PWM
+  #if REAR_FANS_CONTROL == PWM_CONTROL
     pinMode(REAR_FANS_PWM_PIN, OUTPUT);
     // initialize fans at zero speed
     analogWrite(REAR_FANS_PWM_PIN, 0);
   #endif
-  #if REAR_FANS_CONTROL == MCP4162
+  #if REAR_FANS_CONTROL == MCP4162_CONTROL
     pinMode(SPI_SELECT_REAR_FANS_PIN, OUTPUT);
     writeSPIvalue(SPI_SELECT_REAR_FANS_PIN, 0);
   #endif
@@ -269,11 +275,11 @@ void setRearFansSpeedPercent(long speed) {
     } else {
       rearFansSpeedPercent = speed;
     }
-  #if REAR_FANS_CONTROL == PWM
+  #if REAR_FANS_CONTROL == PWM_CONTROL
     rearFansPwmValue = (rearFansSpeedPercent / 100) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(REAR_FANS_PWM_PIN, rearFansPwmValue);
   #endif
-  #if REAR_FANS_CONTROL == MCP4162
+  #if REAR_FANS_CONTROL == MCP4162_CONTROL
     rearFansSPIValue = (rearFansSpeedPercent / 100) * (SPI_WRITE_RANGE - 1);
     writeSPIvalue(SPI_SELECT_REAR_FANS_PIN, rearFansSPIValue);
   #endif
@@ -314,7 +320,7 @@ void read_rear_fans_voltage() {
 
 // called from setup()
 void init_water_pump() {
-  #if WATER_PUMP_CONTROL == PWM
+  #if WATER_PUMP_CONTROL == PWM_CONTROL
     pinMode(WATER_PUMP_PWM_PIN, OUTPUT);
     // initialize pump at zero speed
     analogWrite(WATER_PUMP_PWM_PIN, 0);
@@ -329,11 +335,11 @@ void setPumpSpeedPercent(long speed) {
     } else {
       pumpSpeedPercent = speed;
     }
-  #if WATER_PUMP_CONTROL == PWM
+  #if WATER_PUMP_CONTROL == PWM_CONTROL
     pumpPwmValue = (pumpSpeedPercent / 100) * (ANALOG_WRITE_RANGE - 1);
     analogWrite(WATER_PUMP_PWM_PIN, pumpPwmValue);
   #endif
-  #if WATER_PUMP_CONTROL == MCP4162
+  #if WATER_PUMP_CONTROL == MCP4162_CONTROL
     // unimplemented
   #endif
 }
@@ -369,7 +375,7 @@ void read_water_pump_voltage() {
 
 
 #ifdef WITH_REAR_ENV_SENSOR
-#if REAR_ENV_SENSOR_TYPE == DHT22
+#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
 /* functions for rear DHT22 env sensor */
 void read_rear_dht22() {
     rearDHT22Sensor.read();
@@ -379,7 +385,7 @@ void read_rear_dht22() {
 #endif
 
 void init_rear_env_sensor() {
-#if REAR_ENV_SENSOR_TYPE == DHT22
+#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
     // maybe adjust DHT22 sensor offsets (example)
     //rearDHT22Sensor.setHumOffset(10);
     //rearDHT22Sensor.setTempOffset(-3.5);

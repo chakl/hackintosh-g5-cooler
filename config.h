@@ -36,7 +36,7 @@
 // support rear fans speed control
 #define WITH_REAR_FANS
 // how to control rear fans speed (either PWM or MCP4162)
-#define REAR_FANS_CONTROL PWM
+#define REAR_FANS_CONTROL PWM_CONTROL
 // support fan voltage measurement
 #define WITH_REAR_FANS_VOLTAGE                 // requires WITH_REAR_FANS, otherwise ignored
 #define REAR_FANS_VOLTAGE_READ_INTERVAL 2000   // 2 secs
@@ -46,7 +46,7 @@
 // support water pump power control
 //#define WITH_WATER_PUMP
 // how to control water pump power (either PWM or MCP4162)
-#define WATER_PUMP_CONTROL PWM
+#define WATER_PUMP_CONTROL PWM_CONTROL
 // support water pump voltage measurement
 //#define WITH_WATER_PUMP_VOLTAGE              // requires WITH_WATER_PUMP, otherwise ignored
 #define WATER_PUMP_VOLTAGE_READ_INTERVAL 2000  // 2 secs
@@ -55,7 +55,7 @@
 
 // support rear temperature/humidity sensor
 #define WITH_REAR_ENV_SENSOR
-#define REAR_ENV_SENSOR_TYPE DHT22             // type of rear sensor (DHT22 only)
+#define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
 #define REAR_ENV_SENSOR_READ_INTERVAL 2000     // 2 secs
 
 // support WIFI features if hardware is ESP8266
