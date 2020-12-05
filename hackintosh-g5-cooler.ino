@@ -50,6 +50,15 @@ float pumpAnalogIn             = 0;
 long  lastReadPumpVoltage      = 0;
 #endif
 
+#ifdef WITH_FRONT_ENV_SENSOR
+float frontEnvSensorTemperature = 0;
+float frontEnvSensorHumidity    = 0;
+#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+  #include <dhtnew.h>
+  DHTNEW frontDHT22Sensor(FRONT_ENV_SENSOR_PIN);
+#endif
+#endif
+
 #ifdef WITH_REAR_ENV_SENSOR
 float rearEnvSensorTemperature = 0;
 float rearEnvSensorHumidity    = 0;
@@ -116,8 +125,21 @@ void setup ()
     init_water_pump();
 #endif
 
+#ifdef WITH_FRONT_ENV_SENSOR
+    init_front_env_sensor();
+#endif
+
 #ifdef WITH_REAR_ENV_SENSOR
     init_rear_env_sensor();
+#endif
+
+#ifdef WITH_PUSHBUTTON_LED
+    pinMode(PUSHBUTTON_LED_PIN, OUTPUT);
+#endif
+
+#ifdef WITH_BICOLOR_STATUS_LED
+    pinMode(STATUS_GREEN_LED_PIN, OUTPUT);
+    pinMode(STATUS_RED_LED_PIN, OUTPUT);
 #endif
 
 #ifdef WITH_ESP8266_WIFI
@@ -138,6 +160,13 @@ void loop()
 #ifdef WITH_OTA
     // check for over-the-air updates
     ArduinoOTA.handle();
+#endif
+
+#if defined(WITH_FRONT_ENV_SENSOR) && FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+    // read front environment sensor
+    if ((millis() - frontDHT22Sensor.lastRead()) > FRONT_ENV_SENSOR_READ_INTERVAL) {
+      read_front_dht22();
+    }
 #endif
 
 #if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
@@ -404,12 +433,33 @@ void read_water_pump_voltage() {
 #endif  // WITH_WATER_PUMP
 
 
+#ifdef WITH_FRONT_ENV_SENSOR
+#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+/* functions for front DHT22 env sensor */
+void init_front_env_sensor() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize front DHT22 sensor..."));
+  #endif
+    // maybe adjust DHT22 sensor offsets (example)
+    //frontDHT22Sensor.setHumOffset(10);
+    //frontDHT22Sensor.setTempOffset(-3.5);
+}
+
+void read_front_dht22() {
+    frontDHT22Sensor.read();
+    frontEnvSensorHumidity    = frontDHT22Sensor.getHumidity();
+    frontEnvSensorTemperature = frontDHT22Sensor.getTemperature();
+}
+#endif
+#endif  // WITH_REAR_ENV_SENSOR
+
+
 #ifdef WITH_REAR_ENV_SENSOR
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
 /* functions for rear DHT22 env sensor */
 void init_rear_env_sensor() {
   #ifdef USE_SERIAL_DEBUG
-    Serial.println(F("Initialize DHT22 sensor..."));
+    Serial.println(F("Initialize rear DHT22 sensor..."));
   #endif
     // maybe adjust DHT22 sensor offsets (example)
     //rearDHT22Sensor.setHumOffset(10);

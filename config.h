@@ -6,13 +6,18 @@
   #define REAR_FANS_VOLTAGE_PIN A0
   #define WATER_PUMP_PWM_PIN 11
   #define WATER_PUMP_VOLTAGE_PIN A1
+  #define FRONT_ENV_SENSOR_PIN 7
   #define REAR_ENV_SENSOR_PIN 8
+  // status LED pins, if used
+  #define PUSHBUTTON_LED_PIN 2
+  //#define STATUS_GREEN_LED_PIN x
+  //#define STATUS_RED_LED_PIN x
   // SPI pins, if used (for MCP4162)
-  #define SPI_SELECT_REAR_FANS_PIN 10
-  #define SPI_SELECT_WATER_PUMP_PIN 9
-  #define SPI_MOSI_PIN 11
-  #define SPI_MISO_PIN 12
-  #define SPI_SCK_PIN 13
+  //#define SPI_SELECT_REAR_FANS_PIN 10
+  //#define SPI_SELECT_WATER_PUMP_PIN 9
+  //#define SPI_MOSI_PIN 11
+  //#define SPI_MISO_PIN 12
+  //#define SPI_SCK_PIN 13
 #endif
 
 #ifdef HW_ESP8266
@@ -21,13 +26,18 @@
   #define REAR_FANS_VOLTAGE_PIN A0
   //#define WATER_PUMP_PWM_PIN 12       // D6
   //#define WATER_PUMP_VOLTAGE_PIN A0
+  #define FRONT_ENV_SENSOR_PIN 5      // D1 XXX
   #define REAR_ENV_SENSOR_PIN 5       // D1
+  // status LED pins, if used
+  #define PUSHBUTTON_LED_PIN 2
+  //#define STATUS_GREEN_LED_PIN x
+  //#define STATUS_RED_LED_PIN x
   // SPI pins, if used (for MCP4162)
-  #define SPI_SELECT_REAR_FANS_PIN 15 // D8
-  #define SPI_SELECT_WATER_PUMP_PIN 4 // D2
-  #define SPI_MOSI_PIN 13             // D7
-  #define SPI_MISO_PIN 12             // D6
-  #define SPI_SCK_PIN 14              // D5
+  //#define SPI_SELECT_REAR_FANS_PIN 15 // D8
+  //#define SPI_SELECT_WATER_PUMP_PIN 4 // D2
+  //#define SPI_MOSI_PIN 13             // D7
+  //#define SPI_MISO_PIN 12             // D6
+  //#define SPI_SCK_PIN 14              // D5
 #endif
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -53,10 +63,20 @@
 #define WATER_PUMP_VOLTAGE_NUM_SAMPLES 5
 //#define WATER_PUMP_VOLTAGE_CALIBRATED 5.0
 
+// support front temperature/humidity sensor
+#define WITH_FRONT_ENV_SENSOR
+#define FRONT_ENV_SENSOR_TYPE DHT22_SENSOR      // type of front sensor (DHT22 only)
+#define FRONT_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
+
 // support rear temperature/humidity sensor
 #define WITH_REAR_ENV_SENSOR
 #define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
 #define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
+
+// support Apple G5 front panel pushbutton LED
+#define WITH_PUSHBUTTON_LED
+// support bicolor status LED
+//#define WITH_BICOLOR_STATUS_LED
 
 // support WIFI features if hardware is ESP8266
 #ifdef HW_ESP8266
