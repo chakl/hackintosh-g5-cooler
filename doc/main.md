@@ -37,6 +37,7 @@ The software running on the MCU shall provide the following functionality:
 * read/report/warn on water tank low/high
 * read/report temperature and humidity
   * DHT22 sensor (alternatives: AM2320, SI7021, BME280)
+  * support 2 sensors on airflow inlet (rear) / airflow outlet (front)
 * keep G5 front panel
   * power button and power LED
   * USB as power supply for external devices (no USB data)
@@ -44,6 +45,30 @@ The software running on the MCU shall provide the following functionality:
 * provide a simple HTTP server to report status and change fan and water pump speed
 * for debugging, support serial console output and commands
 * support OTA (over-the-air) software updates
+
+### MCU Pin Requirements
+
+* PWM_FAN - fan speed (PWM)
+* PWM_PUMP - pump speed (PWM)
+* Digital1 - rear env sensor data (OneWire, DHT22)
+* Digital2 - front env sensor data (OneWire, DHT22)
+* Digital3 - software poweroff (TTL)
+* Digital4 - front pushbutton LED (TTL)
+* Digital5 - front status green LED (TTL)
+* Digital6 - front status red LED (TTL)
+* Digital7 - 4051 MUX addr  // if >1 analog port used
+* Digital8 - 4051 MUX addr  // if >1 analog port used
+* Digital9 - 4051 MUX addr  // if >1 analog port used
+* SPI_FAN - fan speed (SPI)  // if MCP4162 used
+* SPI_PUMP - pump speed (SPI)  // if MCP4162 used
+* SPI_MOSI - SPI bus  // if MCP4162 used
+* SPI_MISO - SPI bus  // if MCP4162 used
+* SPI_CLK - SPI bus  // if MCP4162 used
+* Analog1 - water tank level
+* Analog2 - fan voltage
+* Analog3 - pump voltage
+* Analog4 - Dcc 15V rail voltage
+* Analog5 - MCU 5V rail voltage
 
 ## Circuit
 
