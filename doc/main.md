@@ -18,11 +18,29 @@ We have not used the fans rotation speed sense pins yet.
 
 ## Microcontroller
 
-Initially, we designed the system to use standard Arduino boards (Arduino Uno, Nano or Pro Mini with ATmega328 processor). It might work with limited functionality on the smaller ATTiny boards, we did not test this yet. It should work with minor adjustments on bigger Arduino boards such as Arduino Mega, but these boards would probably be overkill for the task at hand. Untested because we don't have these boards.
+#### Design Rev. 1 (Arduino, no WiFi, no OTA)
 
-After some redesign we wanted to support WiFi, so the system could interface to home automation systems or be controlled by a mobile app. The obvious choice was using a board from the ESP8266 family, which include WiFi hardware. We used an ESP-12 board (Wemos D1, similar boards such as NodeMCU should work as well). The small ESP-01 boards might work with limited functionality, we did not test this yet. It should work with minor adjustments on bigger ESP32 boards as well, but that would probably be overkill either.
+Initially, we designed the system to use standard Arduino boards (Arduino Uno, Nano or Pro Mini with ATmega328 processor). It might even work with limited functionality on the smaller ATTiny boards, but these boards do not have enough GPIO pins for our purposes, so extra port multiplexer components would have to be added. We did not test this yet. It should work with minor adjustments on bigger Arduino boards providing more ports (such as Arduino Mega). Untested because we don't have these boards.
 
-Another variant is to run the main code on an Arduino board, with WiFi functionality offloaded to a connected ESP-01. We did not test this yet.
+Most Arduino boards do not have builtin WiFi. One way to add WiFi support to an Arduino would be to connect it to a small ESP8266-01 board. The Arduino can connect to a WiFi network by treating the ESP as a modem and set `AT` commands over a software serial line. This provides WiFI IP connectivity, but we need more work to implement an HTTP server. And it seems that *over-the-air* software updates are not possible. We did not follow that route.
+
+We use PWM output from the MCU to drive two LM317 regulators to control the fan speed and water pump power. The MCU PWM signal gets converted into a (more or less) constant voltage, with gets amplified to the required level using an LM358 OpAmp. We have also experimented with digital potentiometers (MCP4162) to drive the LM317 output voltages, but these devices are rather expensive compared to the PWM/lowpass/OpAmp circuit. They will also need 5 pins for SPI. We did not follow that route further.
+
+#### Design Rev. 2 (ESP8266, WiFi, OTA, Sensors, Front Panel)
+
+After some redesign we wanted to support WiFi, so the system could interface to home automation systems or be controlled by a mobile app. The obvious choice was using a board from the ESP8266 family, which include WiFi hardware. We used an ESP-12 board (Wemos D1, similar boards such as NodeMCU should work as well). The small ESP-01 boards might work with very limited functionality, as they need further port multiplexer components. We did not test this yet.
+
+With the Rev2 design we chose to add two environment sensors (temperature/humidity) near both airflow inlet and outlet. Which requires 2 more pins (for DHT22 sensors) or using the I2C bus (for AM2320 sensors), which needs 2 pins as well. We also added a water tank level sensor that outputs certain voltages depending on the water tank level, which needs an analog input to measure that voltage. ESP8266 MCUs have *exactly one* analog input pin.
+
+We have experimented with voltage dividers to read and report voltage levels (5V MCU power rail, 15V rail, fan voltage, pump voltage). Each of these requires another analog input, so in order to use that we need an analog port multiplexer. A cheap 74HC4051 provides 8 analog input ports, but needs 4 MCU pins to read them. The more expensive ADS1115 units provide 8 analog ports over I2C, which might already be used for the AM2320 sensors, so no further pins are required.
+
+In Rev2 we also support the Mac G5 front panel (on/off pushbutton with LED, additional 2-color status LED). For the on/off pushbutton to work, we need to provide a power latching circuit ourselves - it was implemented on the Mac mainboard which we removed.
+
+Even with the ESP8266-12, we run out of ports (esp. analog ports), and need external port multiplexer devices.
+
+#### Design Rev. 3 (ESP32, WiFi/BluetoothLE, OTA, Sensors, Front Panel)
+
+[work in progress]
 
 ### Functionality provided by Microcontroller
 
@@ -53,17 +71,17 @@ The software running on the MCU shall provide the following functionality:
 * Digital1 - rear env sensor data (OneWire, DHT22)
 * Digital2 - front env sensor data (OneWire, DHT22)
 * Digital3 - software poweroff (TTL)
-* Digital4 - front pushbutton LED (TTL)
-* Digital5 - front status green LED (TTL)
-* Digital6 - front status red LED (TTL)
+* <strike>Digital4 - front pushbutton LED (TTL)</strike> latchup circuit, no MCU pin needed
+* Digital5 - front status green LED (TTL)  // if bicolor status LED used
+* Digital6 - front status red LED (TTL)  // if bicolor status LED used
 * Digital7 - 4051 MUX addr  // if >1 analog port used
 * Digital8 - 4051 MUX addr  // if >1 analog port used
 * Digital9 - 4051 MUX addr  // if >1 analog port used
-* SPI_FAN - fan speed (SPI)  // if MCP4162 used
-* SPI_PUMP - pump speed (SPI)  // if MCP4162 used
-* SPI_MOSI - SPI bus  // if MCP4162 used
-* SPI_MISO - SPI bus  // if MCP4162 used
-* SPI_CLK - SPI bus  // if MCP4162 used
+* SPI_FAN - fan speed (SPI)  // if MCP4162 digipot used
+* SPI_PUMP - pump speed (SPI)  // if MCP4162 digipot used
+* SPI_MOSI - SPI bus  // if MCP4162 digipot used
+* SPI_MISO - SPI bus  // if MCP4162 digipot used
+* SPI_CLK - SPI bus  // if MCP4162 digipot used
 * Analog1 - water tank level
 * Analog2 - fan voltage
 * Analog3 - pump voltage
@@ -150,16 +168,16 @@ We have a brushless DC water pump that can be driven with 3.5V to 9V power suppl
 
 [...]
 
-### Environment Sensor
+### Environment Sensors
 
-The environment sensor is not shown in the schematics because it does not need electronic components (only Vcc, GND and connection to a MCU digital pin).
+The environment sensors are not shown in the schematics because they do not need electronic components (only Vcc, GND and connection to a MCU digital pin).
 
-We considered DHT11, DHT22, AM2320, SI7021 and BME280 environmental sensors. We choose to use a DHT22 for the following reasons:
+We considered DHT11, DHT22, AM2320, SI7021 and BME280 environmental sensors. We choose to use DHT22 sensors for the following reasons:
 * unlike SI7021 and BME280, it has a plastic cover (sensor will be mounted outside the case)
 * unlike AM2320, the plastic cover has a nose with a mounting hole which helps mechanical fitting
 * unlike DHT11, it is sufficiently precise
 
-The sensor will be mounted 30-50cm away from the MCU board. It needs 3 lines for signal, 5V Vcc and GND, so we chose shielded stereo audio cable for the connection.
+The sensors will be mounted 30-50cm away from the MCU board. It needs 3 lines for signal, 5V Vcc and GND, so we chose shielded stereo audio cable for the connection.
 
 ## Software
 
@@ -191,9 +209,13 @@ We use an increased PWM frequency of >30kHz by default. This can be disabled for
 
 `WITH_WATER_PUMP` allows to control water pump power from the MCU. Might be disabled for testing purposes. `WITH_WATER_PUMP_VOLTAGE` allows to measure water pump voltage and report it by HTTP or serial console if configured. Note that ESP8266 provide only one analog input, so either fans or pump voltage can be monitored.
 
-##### WITH_REAR_ENV_SENSOR
+##### WITH_FRONT_ENV_SENSOR and WITH_REAR_ENV_SENSOR
 
-This defines that an environmental sensor is mounted on the back of the unit. An environmental sensor reads and reports at least temperature und humidity data. Currently supported sensors are DHT22, possibly supported sensors might be AM2320, SI7021 or BMEx80. If configured, the sensor will report data by HTTP or serial console if these channels are enabled.
+These define that environmental sensors are mounted on the front and the back of the unit. An environmental sensor reads and reports at least temperature und humidity data. Currently supported sensors are DHT22, possibly supported sensors might be AM2320, SI7021 or BMEx80. If configured, the sensors will report data by HTTP or serial console if these channels are enabled.
+
+##### WITH_BICOLOR_STATUS_LED
+
+This is used to support a bicolor status LED (green/red) that is mounted on the Apple G5 frontpanel in place of the audio jack. 
 
 ##### WITH_SERIAL and WITH_SERIAL_COMMANDS
 
