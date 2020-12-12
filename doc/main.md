@@ -18,11 +18,29 @@ We have not used the fans rotation speed sense pins yet.
 
 ## Microcontroller
 
-Initially, we designed the system to use standard Arduino boards (Arduino Uno, Nano or Pro Mini with ATmega328 processor). It might work with limited functionality on the smaller ATTiny boards, we did not test this yet. It should work with minor adjustments on bigger Arduino boards such as Arduino Mega, but these boards would probably be overkill for the task at hand. Untested because we don't have these boards.
+#### Design Rev. 1 (Arduino, no WiFi, no OTA)
 
-After some redesign we wanted to support WiFi, so the system could interface to home automation systems or be controlled by a mobile app. The obvious choice was using a board from the ESP8266 family, which include WiFi hardware. We used an ESP-12 board (Wemos D1, similar boards such as NodeMCU should work as well). The small ESP-01 boards might work with very limited functionality, we did not test this yet. It should work with minor adjustments on bigger ESP32 boards as well, but that would probably be overkill either.
+Initially, we designed the system to use standard Arduino boards (Arduino Uno, Nano or Pro Mini with ATmega328 processor). It might even work with limited functionality on the smaller ATTiny boards, but these boards do not have enough GPIO pins for our purposes, so extra port multiplexer components would have to be added. We did not test this yet. It should work with minor adjustments on bigger Arduino boards providing more ports (such as Arduino Mega). Untested because we don't have these boards.
 
-Another variant is to run the main code on an Arduino board, with WiFi functionality offloaded to a connected ESP-01.      Some preliminary research showed that would need to issue `AT` modem commands over a software serial line to get IP connectivity, and there are no out-of-the-box HTTP server and over-the-air updates as with the ESP8266 architecture. We did not follow that path.
+Most Arduino boards do not have builtin WiFi. One way to add WiFi support to an Arduino would be to connect it to a small ESP8266-01 board. The Arduino can connect to a WiFi network by treating the ESP as a modem and set `AT` commands over a software serial line. This provides WiFI IP connectivity, but we need more work to implement an HTTP server. And it seems that *over-the-air* software updates are not possible. We did not follow that route.
+
+We use PWM output from the MCU to drive two LM317 regulators to control the fan speed and water pump power. The MCU PWM signal gets converted into a (more or less) constant voltage, with gets amplified to the required level using an LM358 OpAmp. We have also experimented with digital potentiometers (MCP4162) to drive the LM317 output voltages, but these devices are rather expensive compared to the PWM/lowpass/OpAmp circuit. They will also need 5 pins for SPI. We did not follow that route further.
+
+#### Design Rev. 2 (ESP8266, WiFi, OTA, Sensors, Front Panel)
+
+After some redesign we wanted to support WiFi, so the system could interface to home automation systems or be controlled by a mobile app. The obvious choice was using a board from the ESP8266 family, which include WiFi hardware. We used an ESP-12 board (Wemos D1, similar boards such as NodeMCU should work as well). The small ESP-01 boards might work with very limited functionality, as they need further port multiplexer components. We did not test this yet.
+
+With the Rev2 design we chose to add two environment sensors (temperature/humidity) near both airflow inlet and outlet. Which requires 2 more pins (for DHT22 sensors) or using the I2C bus (for AM2320 sensors), which needs 2 pins as well. We also added a water tank level sensor that outputs certain voltages depending on the water tank level, which needs an analog input to measure that voltage. ESP8266 MCUs have *exactly one* analog input pin.
+
+We have experimented with voltage dividers to read and report voltage levels (5V MCU power rail, 15V rail, fan voltage, pump voltage). Each of these requires another analog input, so in order to use that we need an analog port multiplexer. A cheap 74HC4051 provides 8 analog input ports, but needs 4 MCU pins to read them. The more expensive ADS1115 units provide 8 analog ports over I2C, which might already be used for the AM2320 sensors, so no further pins are required.
+
+In Rev2 we also support the Mac G5 front panel (on/off pushbutton with LED, additional 2-color status LED). For the on/off pushbutton to work, we need to provide a power latching circuit ourselves - it was implemented on the Mac mainboard which we removed.
+
+Even with the ESP8266-12, we run out of ports (esp. analog ports), and need external port multiplexer devices.
+
+#### Design Rev. 3 (ESP32, WiFi/BluetoothLE, OTA, Sensors, Front Panel)
+
+[work in progress]
 
 ### Functionality provided by Microcontroller
 
