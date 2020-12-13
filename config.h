@@ -8,6 +8,9 @@
   #define WATER_PUMP_VOLTAGE_PIN A1
   #define FRONT_ENV_SENSOR_PIN 7
   #define REAR_ENV_SENSOR_PIN 8
+  // I2C
+  #define I2C_SDA_PIN A4
+  #define I2C_SCL_PIN A5
   // status LED pins, if used
   //#define STATUS_GREEN_LED_PIN x
   //#define STATUS_RED_LED_PIN x
@@ -22,11 +25,13 @@
 #ifdef HW_ESP8266
   // pin number values refer to GPIO#, not D# printed on Wemos module
   #define REAR_FANS_PWM_PIN 14        // D5
-  #define REAR_FANS_VOLTAGE_PIN A0
-  //#define WATER_PUMP_PWM_PIN 12       // D6
+  //#define REAR_FANS_VOLTAGE_PIN A0
+  #define WATER_PUMP_PWM_PIN 12       // D6
   //#define WATER_PUMP_VOLTAGE_PIN A0
-  #define FRONT_ENV_SENSOR_PIN 5      // D1 XXX
-  #define REAR_ENV_SENSOR_PIN 5       // D1
+  #define FRONT_ENV_SENSOR_PIN 13     // D7
+  #define REAR_ENV_SENSOR_PIN 15      // D8
+  #define I2C_SDA_PIN 4               // D2
+  #define I2C_SCL_PIN 5               // D1
   // status LED pins, if used
   //#define STATUS_GREEN_LED_PIN x
   //#define STATUS_RED_LED_PIN x
@@ -49,7 +54,7 @@
 // how to control rear fans speed (either PWM or MCP4162)
 #define REAR_FANS_CONTROL PWM_CONTROL
 // support fan voltage measurement
-#define WITH_REAR_FANS_VOLTAGE                 // requires WITH_REAR_FANS, otherwise ignored
+//#define WITH_REAR_FANS_VOLTAGE                 // requires WITH_REAR_FANS, otherwise ignored
 #define REAR_FANS_VOLTAGE_READ_INTERVAL 2000   // 2 secs
 #define REAR_FANS_VOLTAGE_NUM_SAMPLES 5
 //#define REAR_FANS_VOLTAGE_CALIBRATED 5.0

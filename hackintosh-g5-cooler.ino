@@ -16,12 +16,18 @@
   #error "Unsupported board!"
 #endif
 
+//---------------------------------------------------------------------------------------------------------------------
+// constants
+//---------------------------------------------------------------------------------------------------------------------
 // constants for type of LM317 voltage control
 #define PWM_CONTROL 0
 #define MCP4162_CONTROL 1
 // constants for sensor types
 #define DHT22_SENSOR 0
 #define AM2320_SENSOR 1
+// constants fo data unknown
+#define TEMPERATURE_UNKNOWN -99
+#define HUMIDITY_UNKNONW -99
 
 //---------------------------------------------------------------------------------------------------------------------
 // include config from separate file
@@ -57,22 +63,28 @@ long  lastReadPumpVoltage      = 0;
 #ifdef WITH_FRONT_ENV_SENSOR
 float frontEnvSensorTemperature = 0;
 float frontEnvSensorHumidity    = 0;
+long  lastReadFrontEnvSensor    = 0;
 #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
   DHTNEW frontDHT22Sensor(FRONT_ENV_SENSOR_PIN);
 #endif
 #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #include <AM2320.h>
+  AM2320 frontAM2320Sensor;
 #endif
 #endif
 
 #ifdef WITH_REAR_ENV_SENSOR
 float rearEnvSensorTemperature = 0;
 float rearEnvSensorHumidity    = 0;
+long  lastReadRearEnvSensor    = 0;
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
   DHTNEW rearDHT22Sensor(REAR_ENV_SENSOR_PIN);
 #endif
-#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #include <AM2320.h>
+  AM2320 rearAM2320Sensor;
 #endif
 #endif
 
@@ -105,6 +117,7 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #endif
 
 #if (defined(WITH_FRONT_ENV_SENSOR) && FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR) || (defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR)
+#include <Wire.h>
 #define USE_I2C
 #endif
 
@@ -178,21 +191,29 @@ void loop()
     ArduinoOTA.handle();
 #endif
 
-#if defined(WITH_FRONT_ENV_SENSOR) && FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+#ifdef WITH_FRONT_ENV_SENSOR
     // read front environment sensor
-    if ((millis() - frontDHT22Sensor.lastRead()) > FRONT_ENV_SENSOR_READ_INTERVAL) {
+    if ((millis() - lastReadFrontEnvSensor) > FRONT_ENV_SENSOR_READ_INTERVAL) {
+  #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
       read_front_dht22();
+  #endif
+  #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+      read_front_am2320();
+  #endif
     }
-#endif
+#endif  // WITH_FRONT_ENV_SENSOR
 
-#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
+#ifdef WITH_REAR_ENV_SENSOR
     // read rear environment sensor
-    if ((millis() - rearDHT22Sensor.lastRead()) > REAR_ENV_SENSOR_READ_INTERVAL) {
+    if ((millis() - lastReadFrontEnvSensor) > REAR_ENV_SENSOR_READ_INTERVAL) {
+  #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
       read_rear_dht22();
+  #endif
+  #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+      read_rear_am2320();
+  #endif
     }
-#endif
-#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
-#endif
+#endif  // WITH_REAR_ENV_SENSOR
 
 #if defined(WITH_REAR_FANS) && defined(WITH_REAR_FANS_VOLTAGE)
     // read rear fans voltage
@@ -249,6 +270,7 @@ void init_i2c() {
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Initialize I2C..."));
   #endif
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 }
 #endif  // USE_I2C
 
@@ -476,12 +498,41 @@ void read_front_dht22() {
     frontDHT22Sensor.read();
     frontEnvSensorHumidity    = frontDHT22Sensor.getHumidity();
     frontEnvSensorTemperature = frontDHT22Sensor.getTemperature();
+    lastReadFrontEnvSensor    = frontDHT22Sensor.lastRead();
 }
-#endif
+#endif  // DHT22_SENSOR
 #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
 void init_front_env_sensor() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize front AM2320 sensor..."));
+  #endif
+  // nothing to do
 }
-#endif
+void read_front_am2320() {
+  switch(frontAM2320Sensor.Read()) {
+  #ifdef USE_SERIAL_DEBUG
+    case 2:
+      Serial.println("Front AM2320 CRC failed");
+      frontEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      frontEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+      break;
+    case 1:
+      Serial.println("Front AM2320 sensor offline");
+      frontEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      frontEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+      break;
+  #endif
+    case 0:
+      frontEnvSensorHumidity    = frontAM2320Sensor.h;
+      frontEnvSensorTemperature = frontAM2320Sensor.t;
+      break;
+    default:
+      frontEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      frontEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+  }
+    lastReadFrontEnvSensor    = millis();
+}
+#endif  // AM2320_SENSOR
 #endif  // WITH_FRONT_ENV_SENSOR
 
 
@@ -500,12 +551,41 @@ void read_rear_dht22() {
     rearDHT22Sensor.read();
     rearEnvSensorHumidity    = rearDHT22Sensor.getHumidity();
     rearEnvSensorTemperature = rearDHT22Sensor.getTemperature();
+    lastReadRearEnvSensor    = rearDHT22Sensor.lastRead();
 }
-#endif
-#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+#endif  // DHT22_SENSOR
+#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
 void init_rear_env_sensor() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize rear AM2320 sensor..."));
+  #endif
+  // nothing to do
 }
-#endif
+void read_rear_am2320() {
+  switch(rearAM2320Sensor.Read()) {
+  #ifdef USE_SERIAL_DEBUG
+    case 2:
+      Serial.println("Rear AM2320 CRC failed");
+      rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      rearEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+      break;
+    case 1:
+      Serial.println("Rear AM2320 sensor offline");
+      rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      rearEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+      break;
+  #endif
+    case 0:
+      rearEnvSensorHumidity    = frontAM2320Sensor.h;
+      rearEnvSensorTemperature = frontAM2320Sensor.t;
+      break;
+    default:
+      rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
+      rearEnvSensorTemperature = TEMPERATURE_UNKNOWN;
+  }
+    lastReadRearEnvSensor    = millis();
+}
+#endif  // AM2320_SENSOR
 #endif  // WITH_REAR_ENV_SENSOR
 
 
