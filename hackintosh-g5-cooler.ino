@@ -9,6 +9,9 @@
   #define HW_ESP8266
   #define HW_NAME "ESP8266"
   #define ANALOG_WRITE_RANGE 1024
+#elif defined(ESP32)
+  #define HW_ESP32
+  #define HW_NAME "ESP32"
 #else
   #error "Unsupported board!"
 #endif
