@@ -21,6 +21,7 @@
 #define MCP4162_CONTROL 1
 // constants for sensor types
 #define DHT22_SENSOR 0
+#define AM2320_SENSOR 1
 
 //---------------------------------------------------------------------------------------------------------------------
 // include config from separate file
@@ -60,6 +61,8 @@ float frontEnvSensorHumidity    = 0;
   #include <dhtnew.h>
   DHTNEW frontDHT22Sensor(FRONT_ENV_SENSOR_PIN);
 #endif
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+#endif
 #endif
 
 #ifdef WITH_REAR_ENV_SENSOR
@@ -68,6 +71,8 @@ float rearEnvSensorHumidity    = 0;
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
   DHTNEW rearDHT22Sensor(REAR_ENV_SENSOR_PIN);
+#endif
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
 #endif
 #endif
 
@@ -99,6 +104,10 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #define USE_SPI
 #endif
 
+#if (defined(WITH_FRONT_ENV_SENSOR) && FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR) || (defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR)
+#define USE_I2C
+#endif
+
 #if defined(WITH_SERIAL) && defined(WITH_DEBUG)
 #define USE_SERIAL_DEBUG
 #endif
@@ -114,6 +123,10 @@ void setup ()
 
 #ifdef USE_HIGH_PWMFREQ
     init_pwmfreq();
+#endif
+
+#ifdef USE_I2C
+    init_i2c();
 #endif
 
 #ifdef USE_SPI
@@ -178,12 +191,16 @@ void loop()
       read_rear_dht22();
     }
 #endif
+#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+#endif
 
 #if defined(WITH_REAR_FANS) && defined(WITH_REAR_FANS_VOLTAGE)
     // read rear fans voltage
     if ((millis() - lastReadRearFansVoltage) > REAR_FANS_VOLTAGE_READ_INTERVAL) {
         read_rear_fans_voltage();
     }
+#endif
+#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
 #endif
 
 #if defined(WITH_WATER_PUMP) && defined(WITH_WATER_PUMP_VOLTAGE)
@@ -226,6 +243,14 @@ void loop()
 //-------------------------------------------------------------------------------------------
 // functions
 //-------------------------------------------------------------------------------------------
+
+#ifdef USE_I2C
+void init_i2c() {
+  #ifdef USE_SERIAL_DEBUG
+    Serial.println(F("Initialize I2C..."));
+  #endif
+}
+#endif  // USE_I2C
 
 #ifdef USE_SPI
 void init_spi() {
@@ -447,14 +472,17 @@ void init_front_env_sensor() {
     //frontDHT22Sensor.setHumOffset(10);
     //frontDHT22Sensor.setTempOffset(-3.5);
 }
-
 void read_front_dht22() {
     frontDHT22Sensor.read();
     frontEnvSensorHumidity    = frontDHT22Sensor.getHumidity();
     frontEnvSensorTemperature = frontDHT22Sensor.getTemperature();
 }
 #endif
-#endif  // WITH_REAR_ENV_SENSOR
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+void init_front_env_sensor() {
+}
+#endif
+#endif  // WITH_FRONT_ENV_SENSOR
 
 
 #ifdef WITH_REAR_ENV_SENSOR
@@ -468,11 +496,14 @@ void init_rear_env_sensor() {
     //rearDHT22Sensor.setHumOffset(10);
     //rearDHT22Sensor.setTempOffset(-3.5);
 }
-
 void read_rear_dht22() {
     rearDHT22Sensor.read();
     rearEnvSensorHumidity    = rearDHT22Sensor.getHumidity();
     rearEnvSensorTemperature = rearDHT22Sensor.getTemperature();
+}
+#endif
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+void init_rear_env_sensor() {
 }
 #endif
 #endif  // WITH_REAR_ENV_SENSOR
@@ -523,9 +554,13 @@ void rootPage() {
                    "Pump voltage: " + String(pumpVoltage) + "V\r\n" +
 #endif
 #endif
+#ifdef WITH_FRONT_ENV_SENSOR
+                   "Front temperature: " + String(frontEnvSensorTemperature) + "C\r\n" +
+                   "Front humidity: " + String(frontEnvSensorHumidity) + "%\r\n" +
+#endif
 #ifdef WITH_REAR_ENV_SENSOR
-                   "Temperature: " + String(rearEnvSensorTemperature) + "C\r\n" +
-                   "Humidity: " + String(rearEnvSensorHumidity) + "%\r\n" +
+                   "Rear temperature: " + String(rearEnvSensorTemperature) + "C\r\n" +
+                   "Rear humidity: " + String(rearEnvSensorHumidity) + "%\r\n" +
 #endif
                    "");
 }
@@ -652,10 +687,16 @@ void serial_report_values() {
     Serial.println(pumpAnalogIn);
   #endif
   #endif
+  #ifdef WITH_FRONT_ENV_SENSOR
+    Serial.print(F("Front temperature: "));
+    Serial.println(frontEnvSensorTemperature);
+    Serial.print(F("Front humidity%: "));
+    Serial.println(frontEnvSensorHumidity);
+  #endif
   #ifdef WITH_REAR_ENV_SENSOR
-    Serial.print(F("Temperature: "));
+    Serial.print(F("Rear temperature: "));
     Serial.println(rearEnvSensorTemperature);
-    Serial.print(F("Humidity%: "));
+    Serial.print(F("Rear humidity%: "));
     Serial.println(rearEnvSensorHumidity);
   #endif
 

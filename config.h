@@ -66,12 +66,14 @@
 
 // support front temperature/humidity sensor
 #define WITH_FRONT_ENV_SENSOR
-#define FRONT_ENV_SENSOR_TYPE DHT22_SENSOR      // type of front sensor (DHT22 only)
+//#define FRONT_ENV_SENSOR_TYPE DHT22_SENSOR      // type of front sensor (DHT22 only)
+#define FRONT_ENV_SENSOR_TYPE AM2320_SENSOR     // type of front sensor (DHT22 or AM2320)
 #define FRONT_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support rear temperature/humidity sensor
 #define WITH_REAR_ENV_SENSOR
-#define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
+//#define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
+#define REAR_ENV_SENSOR_TYPE AM2320_SENSOR     // type of rear sensor (DHT22 or AM2320)
 #define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support bicolor status LED
