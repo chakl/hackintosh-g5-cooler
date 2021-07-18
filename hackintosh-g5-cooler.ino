@@ -1,22 +1,4 @@
 //---------------------------------------------------------------------------------------------------------------------
-// board definitions (supported: Arduino, ESP8266, ESP32)
-//---------------------------------------------------------------------------------------------------------------------
-#ifdef HW_ARDUINO
-  #define HW_NAME "Arduino"
-  #define ANALOG_WRITE_RANGE 256
-#endif
-
-#ifdef HW_ESP8266
-  #define HW_NAME "ESP8266"
-  //#define ANALOG_WRITE_RANGE 1024
-  #define ANALOG_WRITE_RANGE 256
-#endif
-
-#ifdef HW_ESP32
-  #define HW_NAME "ESP32"
-#endif
-
-//---------------------------------------------------------------------------------------------------------------------
 // constants (to get the symbols defined, value does not really matter)
 //---------------------------------------------------------------------------------------------------------------------
 // constants for type of LM317 voltage control
@@ -37,6 +19,24 @@
 // include config from separate file
 //---------------------------------------------------------------------------------------------------------------------
 #include "config.h"
+
+//---------------------------------------------------------------------------------------------------------------------
+// board definitions (supported: Arduino, ESP8266, ESP32)
+//---------------------------------------------------------------------------------------------------------------------
+#ifdef HW_ARDUINO
+  #define HW_NAME "Arduino"
+  #define ANALOG_WRITE_RANGE 256
+#endif
+
+#ifdef HW_ESP8266
+  #define HW_NAME "ESP8266"
+  //#define ANALOG_WRITE_RANGE 1024
+  #define ANALOG_WRITE_RANGE 256
+#endif
+
+#ifdef HW_ESP32
+  #define HW_NAME "ESP32"
+#endif
 
 //---------------------------------------------------------------------------------------------------------------------
 // global section - global vars and included definitions/functions for components
