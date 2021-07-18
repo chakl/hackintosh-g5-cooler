@@ -248,6 +248,9 @@ This increases the PWM frequency from 490 Hz to 31372.55 Hz (Arduino), or from 1
 * More details on G5 fans (posts #12 and #16): https://www.tonymacx86.com/threads/macpro-fan-pinout.122584/page-2
 * G5 front panel pinout (post #3): https://gradivis.com/projects/topic/powermac-g5-resource-page
 
+* Latching circuits (esp. Fig 6): http://www.mosaic-industries.com/embedded-systems/microcontroller-projects/electronic-circuits/push-button-switch-turn-on/latching-toggle-power-switch
+* Latching circuits: http://www.technoblogy.com/show?VOO
+
 * PWM to DC voltage: https://www.edn.com/control-an-lm317t-with-a-pwm-signal/
 * PWM to DC voltage: https://electronics.stackexchange.com/questions/17852/how-does-this-power-supply-circuit-work-mcu-lm317
 * PWM to DC voltage (post #14): https://forum.arduino.cc/index.php?topic=459003.0
@@ -263,3 +266,7 @@ This increases the PWM frequency from 490 Hz to 31372.55 Hz (Arduino), or from 1
 * Voltage measurement: https://startingelectronics.org/articles/arduino/measuring-voltage-with-arduino/
 * MCP4162: https://tronixstuff.com/category/mcp4162/
 * MCP4162: https://github.com/phanrahan/arduino/tree/master/MCP4162
+
+* HC4051 Analog Mux: https://hackaday.com/2017/05/17/a-few-of-our-favorite-chips-4051-analog-mux/
+* HC4051 Analog Mux: https://internetofhomethings.com/homethings/?p=530
+* HC4051 Analog Mux: http://sankios.imediabank.com/74hc4051
