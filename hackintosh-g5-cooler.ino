@@ -1,31 +1,35 @@
 //---------------------------------------------------------------------------------------------------------------------
-// determine board type (supported: Arduino, ESP8266)
+// board definitions (supported: Arduino, ESP8266, ESP32)
 //---------------------------------------------------------------------------------------------------------------------
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-  #define HW_ARDUINO
+#ifdef HW_ARDUINO
   #define HW_NAME "Arduino"
   #define ANALOG_WRITE_RANGE 256
-#elif defined(ESP8266)
-  #define HW_ESP8266
+#endif
+
+#ifdef HW_ESP8266
   #define HW_NAME "ESP8266"
-  #define ANALOG_WRITE_RANGE 1024
-#elif defined(ESP32)
-  #define HW_ESP32
+  //#define ANALOG_WRITE_RANGE 1024
+  #define ANALOG_WRITE_RANGE 256
+#endif
+
+#ifdef HW_ESP32
   #define HW_NAME "ESP32"
-#else
-  #error "Unsupported board!"
 #endif
 
 //---------------------------------------------------------------------------------------------------------------------
-// constants
+// constants (to get the symbols defined, value does not really matter)
 //---------------------------------------------------------------------------------------------------------------------
 // constants for type of LM317 voltage control
 #define PWM_CONTROL 0
 #define MCP4162_CONTROL 1
-// constants for sensor types
+// constants for component hardware
 #define DHT22_SENSOR 0
 #define AM2320_SENSOR 1
-// constants fo data unknown
+#define HC4051_MUX 2
+#define PCF8591_MUX 3
+#define AMS1115_MUX 4
+
+// constants for unknown data values
 #define TEMPERATURE_UNKNOWN -99
 #define HUMIDITY_UNKNONW -99
 
@@ -42,22 +46,26 @@
 long  lastReportedOnSerial     = 0;
 #endif
 
+#ifdef WITH_VOLTAGE_MEASURE
+long  lastReadVoltages         = 0;
+float railVoltage              = 0.0;
+float mcuRailVoltage           = 0.0;
+#ifdef WITH_REAR_FANS
+float rearFansVoltage          = 0.0;
+#endif
+#ifdef WITH_WATER_PUMP
+float pumpVoltage              = 0.0;
+#endif
+#endif
+
 #ifdef WITH_REAR_FANS
 long  rearFansSpeedPercent     = 0;
 long  rearFansPwmValue         = 0;
-int   rearFansSPIValue         = 0;
-float rearFansVoltage          = 0;
-float rearFansAnalogIn         = 0;
-long  lastReadRearFansVoltage  = 0;
 #endif
 
 #ifdef WITH_WATER_PUMP
 long  pumpSpeedPercent         = 0;
 long  pumpPwmValue             = 0;
-int   pumpSPIValue             = 0;
-float pumpVoltage              = 0;
-float pumpAnalogIn             = 0;
-long  lastReadPumpVoltage      = 0;
 #endif
 
 #ifdef WITH_FRONT_ENV_SENSOR
@@ -66,23 +74,25 @@ float frontEnvSensorHumidity    = 0;
 long  lastReadFrontEnvSensor    = 0;
 #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
-  DHTNEW frontDHT22Sensor(FRONT_ENV_SENSOR_PIN);
+  DHTNEW frontDHT22Sensor(DIGITAL_IN1_PIN);
 #endif
 #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #define FRONT_ENV_SENSOR_I2C
   #include <AM2320.h>
   AM2320 frontAM2320Sensor;
 #endif
 #endif
 
 #ifdef WITH_REAR_ENV_SENSOR
-float rearEnvSensorTemperature = 0;
-float rearEnvSensorHumidity    = 0;
+float rearEnvSensorTemperature = 0.0;
+float rearEnvSensorHumidity    = 0.0;
 long  lastReadRearEnvSensor    = 0;
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
   #include <dhtnew.h>
-  DHTNEW rearDHT22Sensor(REAR_ENV_SENSOR_PIN);
+  DHTNEW rearDHT22Sensor(DIGITAL_IN2_PIN);
 #endif
 #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #define REAR_ENV_SENSOR_I2C
   #include <AM2320.h>
   AM2320 rearAM2320Sensor;
 #endif
@@ -91,11 +101,9 @@ long  lastReadRearEnvSensor    = 0;
 #ifdef WITH_ESP8266_WIFI
 #include <ESP8266WiFi.h>
 IPAddress ip;
-
 #ifdef WITH_OTA
 #include <ArduinoOTA.h>
 #endif
-
 #ifdef WITH_ESP8266_HTTPSRV
 #include <ESP8266WebServer.h>
 #include <uri/UriBraces.h>
@@ -104,10 +112,8 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #endif
 #endif  // WITH_ESP8266_WIFI
 
-#ifdef WITH_HIGH_PWMFREQ
 #if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == PWM_CONTROL) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == PWM_CONTROL)
-#define USE_HIGH_PWMFREQ
-#endif
+#define USE_PWM
 #endif
 
 #if (defined(WITH_REAR_FANS) && REAR_FANS_CONTROL == MCP4162_CONTROL) || (defined(WITH_WATER_PUMP) && WATER_PUMP_CONTROL == MCP4162_CONTROL)
@@ -116,9 +122,28 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #define USE_SPI
 #endif
 
-#if (defined(WITH_FRONT_ENV_SENSOR) && FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR) || (defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR)
+#if defined(FRONT_ENV_SENSOR_I2C) || defined(REAR_ENV_SENSOR_I2C) || defined(ANALOG_MUX_I2C)
 #include <Wire.h>
 #define USE_I2C
+#endif
+
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+const byte muxOut = MUX4051_OUT;         // usually A0
+// the multiplexer address select lines (A/B/C)
+const byte muxAddressA = MUX4051_ADDR_A; // low-order bit
+const byte muxAddressB = MUX4051_ADDR_B;
+const byte muxAddressC = MUX4051_ADDR_C; // high-order bit
+#endif
+
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == AMS1115_MUX
+#include <ADS1115_WE.h>
+#define I2C_ADDRESS 0x48
+ADS1115_WE adc(I2C_ADDRESS);
+#endif
+
+#ifdef WITH_BICOLOR_STATUS_LED
+#define STATUS_GREEN_LED_PIN DIGITAL_OUT1_PIN
+#define STATUS_GREEN_LED_PIN DIGITAL_OUT2_PIN
 #endif
 
 #if defined(WITH_SERIAL) && defined(WITH_DEBUG)
@@ -134,8 +159,8 @@ void setup ()
     init_serial();
 #endif
 
-#ifdef USE_HIGH_PWMFREQ
-    init_pwmfreq();
+#if defined(USE_PWM) && defined(WITH_HIGH_PWMFREQ)
+    init_pwm();
 #endif
 
 #ifdef USE_I2C
@@ -144,6 +169,10 @@ void setup ()
 
 #ifdef USE_SPI
     init_spi();
+#endif
+
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+    init_analog_mux();
 #endif
 
 #ifdef WITH_REAR_FANS
@@ -160,10 +189,6 @@ void setup ()
 
 #ifdef WITH_REAR_ENV_SENSOR
     init_rear_env_sensor();
-#endif
-
-#ifdef WITH_PUSHBUTTON_LED
-    pinMode(PUSHBUTTON_LED_PIN, OUTPUT);
 #endif
 
 #ifdef WITH_BICOLOR_STATUS_LED
@@ -191,21 +216,28 @@ void loop()
     ArduinoOTA.handle();
 #endif
 
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+    // read analog mux
+    if ((millis() - lastReadVoltages) > VOLTAGE_READ_INTERVAL) {
+        readAnalogMux();
+    }
+#endif
+
 #ifdef WITH_FRONT_ENV_SENSOR
     // read front environment sensor
     if ((millis() - lastReadFrontEnvSensor) > FRONT_ENV_SENSOR_READ_INTERVAL) {
   #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
-      read_front_dht22();
+        read_front_dht22();
   #endif
   #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
-      read_front_am2320();
+        read_front_am2320();
   #endif
     }
 #endif  // WITH_FRONT_ENV_SENSOR
 
 #ifdef WITH_REAR_ENV_SENSOR
     // read rear environment sensor
-    if ((millis() - lastReadFrontEnvSensor) > REAR_ENV_SENSOR_READ_INTERVAL) {
+    if ((millis() - lastReadRearEnvSensor) > REAR_ENV_SENSOR_READ_INTERVAL) {
   #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
       read_rear_dht22();
   #endif
@@ -220,8 +252,6 @@ void loop()
     if ((millis() - lastReadRearFansVoltage) > REAR_FANS_VOLTAGE_READ_INTERVAL) {
         read_rear_fans_voltage();
     }
-#endif
-#if defined(WITH_REAR_ENV_SENSOR) && REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
 #endif
 
 #if defined(WITH_WATER_PUMP) && defined(WITH_WATER_PUMP_VOLTAGE)
@@ -243,12 +273,15 @@ void loop()
 
 #ifdef WITH_SERIAL_COMMANDS
     if (Serial.available() > 0) {
-      rearFansSpeedPercent = Serial.parseInt();
+//      rearFansSpeedPercent = Serial.parseInt();
+      pumpSpeedPercent = Serial.parseInt();
       // clear trailing RETURN char from input
       Serial.read();
   
-#ifdef WITH_REAR_FANS
-      setRearFansSpeedPercent(rearFansSpeedPercent);
+//#ifdef WITH_REAR_FANS
+//      setRearFansSpeedPercent(rearFansSpeedPercent);
+#ifdef WITH_WATER_PUMP
+      setPumpSpeedPercent(pumpSpeedPercent);
 #endif
       serial_reply();
       serial_prompt();
@@ -265,6 +298,7 @@ void loop()
 // functions
 //-------------------------------------------------------------------------------------------
 
+//-------------- I2C
 #ifdef USE_I2C
 void init_i2c() {
   #ifdef USE_SERIAL_DEBUG
@@ -274,6 +308,8 @@ void init_i2c() {
 }
 #endif  // USE_I2C
 
+
+//-------------- SPI
 #ifdef USE_SPI
 void init_spi() {
   #ifdef USE_SERIAL_DEBUG
@@ -282,7 +318,6 @@ void init_spi() {
     SPI.begin();
     SPI.setBitOrder(MSBFIRST);  // needed for MCP4162
 }
-
 void writeSPIvalue(int line, int value) {
   #ifdef USE_SERIAL_DEBUG
     Serial.print(F("Write "));
@@ -298,8 +333,10 @@ void writeSPIvalue(int line, int value) {
 #endif  // USE_SPI
 
 
-#ifdef USE_HIGH_PWMFREQ
-void init_pwmfreq() {
+//-------------- PWM (high frequeny setup)
+#ifdef USE_PWM
+#ifdef WITH_HIGH_PWMFREQ
+void init_pwm() {
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Using PWM frequency >30kHz"));
   #endif
@@ -307,10 +344,16 @@ void init_pwmfreq() {
     set_pwm_freq_arduino();
   #endif
   #ifdef HW_ESP8266
-    analogWriteFreq(PWMFREQ_ESP8266);
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("ANALOG_WRITE_RANGE: "));
+    Serial.println(ANALOG_WRITE_RANGE - 1);
+  #endif
+    analogWriteRange(ANALOG_WRITE_RANGE - 1);
+    analogWriteFreq(PWMFREQ_ESP);
+  #endif
+  #ifdef HW_ESP32
   #endif
 }
-
 #ifdef HW_ARDUINO
 /*
  * boilerplate code to set PWM frequency on Arduino
@@ -344,27 +387,89 @@ void set_pwm_freq_arduino()
 //TCCR2B = TCCR2B & B11111000 | B00000111;    // set timer 2 divisor to  1024 for PWM frequency of    30.64 Hz
 }
 #endif  // HW_ARDUINO
-#endif  // USE_HIGH_PWMFREQ
+#endif  // WITH_HIGH_PWMFREQ
+#endif  // USE_PWM
 
-
+//-------------- ANALOG_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+void init_analog_mux()
+{
+    pinMode (muxOut, OUTPUT);
+    pinMode (muxAddressA, OUTPUT);
+    pinMode (muxAddressB, OUTPUT);
+    pinMode (muxAddressC, OUTPUT);
+}
+void readAnalogMux()
+{
+#ifdef WITH_VOLTAGE_MEASURE
+    railVoltage     = readVoltage(MUX_PIN_RAIL_VOLTAGE);
+    mcuRailVoltage  = readVoltage(MUX_PIN_MCURAIL_VOLTAGE);
 #ifdef WITH_REAR_FANS
-/* functions for rear fans */
+    rearFansVoltage = readVoltage(MUX_PIN_FANS_VOLTAGE);
+#endif
+#ifdef WITH_WATER_PUMP
+    pumpVoltage     = readVoltage(MUX_PIN_PUMP_VOLTAGE);
+#endif
+#endif  // WITH_VOLTAGE_MEASURE
+    // other analog sensors below
+    lastReadVoltages = millis();
+}
+#ifdef WITH_VOLTAGE_MEASURE
+float readVoltage (const byte which)
+{
+    // select correct MUX channel
+    digitalWrite (muxAddressA, (which & 1) ? HIGH : LOW);  // low-order bit
+    digitalWrite (muxAddressB, (which & 2) ? HIGH : LOW);
+    digitalWrite (muxAddressC, (which & 4) ? HIGH : LOW);  // high-order bit
+    // read selected sensor: take a number of analog samples and add them up
+    int sum       = 0;      // sum of samples taken
+    int count     = 0;      // current sample number
+    while (count < VOLTAGE_NUM_SAMPLES) {
+        sum += analogRead(muxOut);
+        count++;
+        delay(10);
+    }
+    float avrg = sum / count;
+    // MISSING: convert to voltage value
+  #ifdef USE_SERIAL_DEBUG
+/*
+    Serial.print(F("Raw analog sensor "));
+    Serial.print(which);
+    Serial.print(F(", val "));
+    Serial.println(avrg);
+*/
+  #endif
+    return avrg;
+}
+#endif  // WITH_VOLTAGE_MEASURE
+#endif  // ANALOG_MUX_TYPE == HC4051_MUX
 
+
+//-------------- REAR_FANS
+/* functions for rear fans */
+#ifdef WITH_REAR_FANS
 void init_rear_fans() {
+  int val = 0;
+  #if REAR_FANS_CONTROL == PWM_CONTROL
+  int pin = PWM_CONTROL1_PIN;
+  #endif
+  #if REAR_FANS_CONTROL == MCP4162_CONTROL
+  int pin = SPI_SELECT1_PIN;
+  #endif
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Initialize rear fans to zero..."));
   #endif
+    pinMode(pin, OUTPUT);
+    setRearFansSpeedRaw(pin, val);
+}
+void setRearFansSpeedRaw(int pin, long value) {
   #if REAR_FANS_CONTROL == PWM_CONTROL
-    pinMode(REAR_FANS_PWM_PIN, OUTPUT);
-    // initialize fans at zero speed
-    analogWrite(REAR_FANS_PWM_PIN, 0);
+    analogWrite(pin, value);
   #endif
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
-    pinMode(SPI_SELECT_REAR_FANS_PIN, OUTPUT);
-    writeSPIvalue(SPI_SELECT_REAR_FANS_PIN, 0);
+    writeSPIvalue(pin, value);
   #endif
 }
-
 void setRearFansSpeedPercent(long speed) {
     if (speed < 0) {
       rearFansSpeedPercent = 0;
@@ -379,59 +484,45 @@ void setRearFansSpeedPercent(long speed) {
   #endif
   #if REAR_FANS_CONTROL == PWM_CONTROL
     rearFansPwmValue = (rearFansSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
-    analogWrite(REAR_FANS_PWM_PIN, rearFansPwmValue);
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Set rear fans PWM to "));
+    Serial.println(rearFansPwmValue);
+  #endif
+    analogWrite(PWM_CONTROL1_PIN, rearFansPwmValue);
   #endif
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
     rearFansSPIValue = (rearFansSpeedPercent / 100.0) * (SPI_WRITE_RANGE - 1);
-    writeSPIvalue(SPI_SELECT_REAR_FANS_PIN, rearFansSPIValue);
+    writeSPIvalue(SPI_SELECT1_PIN, rearFansSPIValue);
   #endif
 }
-
-#ifdef WITH_REAR_FANS_VOLTAGE
-void read_rear_fans_voltage() {
-    int sum       = 0;      // sum of samples taken
-    int count     = 0;      // current sample number
-    //float voltage = 0.0;
-
-    // take a number of analog samples and add them up
-    while (count < REAR_FANS_VOLTAGE_NUM_SAMPLES) {
-        sum += analogRead(REAR_FANS_VOLTAGE_PIN);
-        count++;
-        delay(10);
-    }
-    // calculate the voltage
-    //voltage = ((float)sum / (float)REAR_FANS_VOLTAGE_NUM_SAMPLES * REAR_FANS_VOLTAGE_CALIBRATED) / 1024.0;
-    rearFansAnalogIn = ((float)sum / (float)REAR_FANS_VOLTAGE_NUM_SAMPLES);
-
-    // send voltage for display on Serial Monitor
-    // voltage multiplied by 11 when using voltage divider that
-    // divides by 11. 11.132 is the calibrated voltage divide
-    // value
-    //Serial.print(voltage * 11.132);
-    //Serial.print(voltage);
-    //Serial.println (" V");
-
-    lastReadRearFansVoltage = millis();
-}
-#endif  // WITH_REAR_FANS_VOLTAGE
 #endif  // WITH_REAR_FANS
 
 
+//-------------- WATER_PUMP
 #ifdef WITH_WATER_PUMP
 /* functions for water pump */
-
-// called from setup()
 void init_water_pump() {
+  int val = 0;
+  #if WATER_PUMP_CONTROL == PWM_CONTROL
+  int pin = PWM_CONTROL2_PIN;
+  #endif
+  #if WATER_PUMP_CONTROL == MCP4162_CONTROL
+  int pin = SPI_SELECT2_PIN;
+  #endif
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Initialize water pump to zero..."));
   #endif
+    pinMode(pin, OUTPUT);
+    setWaterPumpSpeedRaw(pin, val);
+}
+void setWaterPumpSpeedRaw(int pin, long value) {
   #if WATER_PUMP_CONTROL == PWM_CONTROL
-    pinMode(WATER_PUMP_PWM_PIN, OUTPUT);
-    // initialize pump at zero speed
-    analogWrite(WATER_PUMP_PWM_PIN, 0);
+    analogWrite(pin, value);
+  #endif
+  #if WATER_PUMP_CONTROL == MCP4162_CONTROL
+    writeSPIvalue(pin, value);
   #endif
 }
-
 void setPumpSpeedPercent(long speed) {
     if (speed < 0) {
       pumpSpeedPercent = 0;
@@ -446,43 +537,16 @@ void setPumpSpeedPercent(long speed) {
   #endif
   #if WATER_PUMP_CONTROL == PWM_CONTROL
     pumpPwmValue = (pumpSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
-    analogWrite(WATER_PUMP_PWM_PIN, pumpPwmValue);
+    analogWrite(PWM_CONTROL2_PIN, pumpPwmValue);
   #endif
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
     // unimplemented
   #endif
 }
-
-#ifdef WITH_WATER_PUMP_VOLTAGE
-void read_water_pump_voltage() {
-    int sum       = 0;      // sum of samples taken
-    int count     = 0;      // current sample number
-    //float voltage = 0.0;
-
-    // take a number of analog samples and add them up
-    while (count < WATER_PUMP_VOLTAGE_NUM_SAMPLES) {
-        sum += analogRead(WATER_PUMP_VOLTAGE_PIN);
-        count++;
-        delay(10);
-    }
-    // calculate the voltage
-    //voltage = ((float)sum / (float)WATER_PUMP_VOLTAGE_NUM_SAMPLES * WATER_PUMP_VOLTAGE_CALIBRATED) / 1024.0;
-    pumpAnalogIn = ((float)sum / (float)WATER_PUMP_VOLTAGE_NUM_SAMPLES);
-
-    // send voltage for display on Serial Monitor
-    // voltage multiplied by 11 when using voltage divider that
-    // divides by 11. 11.132 is the calibrated voltage divide
-    // value
-    //Serial.print(voltage * 11.132);
-    //Serial.print(voltage);
-    //Serial.println (" V");
-
-    lastReadPumpVoltage = millis();
-}
-#endif  // WITH_WATER_PUMP_VOLTAGE
 #endif  // WITH_WATER_PUMP
 
 
+//-------------- FRONT_ENV_SENSOR
 #ifdef WITH_FRONT_ENV_SENSOR
 #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
 /* functions for front DHT22 env sensor */
@@ -536,6 +600,7 @@ void read_front_am2320() {
 #endif  // WITH_FRONT_ENV_SENSOR
 
 
+//-------------- REAR_ENV_SENSOR
 #ifdef WITH_REAR_ENV_SENSOR
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
 /* functions for rear DHT22 env sensor */
@@ -576,8 +641,8 @@ void read_rear_am2320() {
       break;
   #endif
     case 0:
-      rearEnvSensorHumidity    = frontAM2320Sensor.h;
-      rearEnvSensorTemperature = frontAM2320Sensor.t;
+      rearEnvSensorHumidity    = rearAM2320Sensor.h;
+      rearEnvSensorTemperature = rearAM2320Sensor.t;
       break;
     default:
       rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
@@ -589,6 +654,7 @@ void read_rear_am2320() {
 #endif  // WITH_REAR_ENV_SENSOR
 
 
+//-------------- WIFI
 #ifdef WITH_ESP8266_WIFI
 /* functions for WiFi support */
 void connect_wifi_esp8266()
@@ -733,6 +799,8 @@ void init_esp8266_wifi() {
 }
 #endif  // WITH_ESP8266_WIFI
 
+
+//-------------- SERIAL
 #ifdef WITH_SERIAL
 /* functions for serial console */
 
@@ -778,6 +846,20 @@ void serial_report_values() {
     Serial.println(rearEnvSensorTemperature);
     Serial.print(F("Rear humidity%: "));
     Serial.println(rearEnvSensorHumidity);
+  #endif
+  #ifdef WITH_VOLTAGE_MEASURE
+    Serial.print(F("RailVolts: "));
+    Serial.println(railVoltage);
+    Serial.print(F("MCURailVolts: "));
+    Serial.println(mcuRailVoltage);
+  #ifdef WITH_REAR_FANS
+    Serial.print(F("FansVolts: "));
+    Serial.println(rearFansVoltage);
+  #endif
+  #ifdef WITH_WATER_PUMP
+    Serial.print(F("PumpVolts: "));
+    Serial.println(pumpVoltage);
+  #endif
   #endif
 
     lastReportedOnSerial = millis();

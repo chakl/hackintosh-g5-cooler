@@ -1,49 +1,97 @@
+// board config
 //---------------------------------------------------------------------------------------------------------------------
+//#define HW_ARDUINO
+#define HW_ESP8266
+//#define HW_ESP32
+
 // pin config per board type
 //---------------------------------------------------------------------------------------------------------------------
 #ifdef HW_ARDUINO
-  #define REAR_FANS_PWM_PIN 3
-  #define REAR_FANS_VOLTAGE_PIN A0
-  #define WATER_PUMP_PWM_PIN 11
-  #define WATER_PUMP_VOLTAGE_PIN A1
-  #define FRONT_ENV_SENSOR_PIN 7
-  #define REAR_ENV_SENSOR_PIN 8
+  // pins for PWM output (fans, pump)
+  #define PWM_CONTROL1_PIN 3
+  #define PWM_CONTROL2_PIN 11
+  //#define PWM_CONTROL3_PIN x
+  // pins for analog input (tank, voltages)
+  #define ANALOG_IN1_PIN A0
+  #define ANALOG_IN2_PIN A1
+  #define ANALOG_IN3_PIN A2
+  #define ANALOG_IN4_PIN A3
+  #define ANALOG_IN5_PIN A4
+  // digital inputs (env sensors)
+  #define DIGITAL_IN1_PIN 7
+  #define DIGITAL_IN2_PIN 8
+  // digital outputs (LEDs)
+  //#define DIGITAL_OUT1_PIN x
+  //#define DIGITAL_OUT2_PIN x
+  //#define DIGITAL_OUT3_PIN x
   // I2C
   #define I2C_SDA_PIN A4
   #define I2C_SCL_PIN A5
-  // status LED pins, if used
-  //#define STATUS_GREEN_LED_PIN x
-  //#define STATUS_RED_LED_PIN x
-  // SPI pins, if used (for MCP4162)
-  //#define SPI_SELECT_REAR_FANS_PIN 10
-  //#define SPI_SELECT_WATER_PUMP_PIN 9
+  // SPI(for MCP4162, pin conflicts!)
   //#define SPI_MOSI_PIN 11
   //#define SPI_MISO_PIN 12
   //#define SPI_SCK_PIN 13
+  //#define SPI_SELECT1_PIN 10
+  //#define SPI_SELECT2_PIN 9
+
+  //#define REAR_FANS_VOLTAGE_PIN A0
+  //#define WATER_PUMP_VOLTAGE_PIN A1
 #endif
 
 #ifdef HW_ESP8266
-  // pin number values refer to GPIO#, not D# printed on Wemos module
-  #define REAR_FANS_PWM_PIN 14        // D5
-  //#define REAR_FANS_VOLTAGE_PIN A0
-  #define WATER_PUMP_PWM_PIN 12       // D6
-  //#define WATER_PUMP_VOLTAGE_PIN A0
-  #define FRONT_ENV_SENSOR_PIN 13     // D7
-  #define REAR_ENV_SENSOR_PIN 15      // D8
+  //// pin number values refer to GPIO#, not D# printed on Wemos module
+  // pins for PWM output (fans, pump)
+  #define PWM_CONTROL1_PIN 0          // D3
+  #define PWM_CONTROL2_PIN 2          // D4
+  //#define PWM_CONTROL3_PIN x
+  // pins for analog input (tank, voltages)
+  #define ANALOG_IN1_PIN A0
+  // digital inputs (env sensors)
+  #define DIGITAL_IN1_PIN 13          // D7
+  #define DIGITAL_IN2_PIN 15          // D8
+  // digital outputs (LEDs)
+  //#define DIGITAL_OUT1_PIN x
+  //#define DIGITAL_OUT2_PIN x
+  //#define DIGITAL_OUT3_PIN x
+  // I2C
   #define I2C_SDA_PIN 4               // D2
   #define I2C_SCL_PIN 5               // D1
-  // status LED pins, if used
-  //#define STATUS_GREEN_LED_PIN x
-  //#define STATUS_RED_LED_PIN x
-  // SPI pins, if used (for MCP4162)
-  //#define SPI_SELECT_REAR_FANS_PIN 15 // D8
-  //#define SPI_SELECT_WATER_PUMP_PIN 4 // D2
+  // SPI (for MCP4162, pin conflicts!)
   //#define SPI_MOSI_PIN 13             // D7
   //#define SPI_MISO_PIN 12             // D6
   //#define SPI_SCK_PIN 14              // D5
+  //#define SPI_SELECT1_PIN 15          // D8
+  //#define SPI_SELECT2_PIN 4           // D2
+  // pins to 4051 MUX (if used)
+  #define MUX4051_OUT ANALOG_IN1_PIN (conflicts!)
+  #define MUX4051_ADDR_A 14           // D5
+  #define MUX4051_ADDR_B 12           // D6
+  #define MUX4051_ADDR_C 13           // D7
 #endif
 
 #ifdef HW_ESP32
+  // pin number values refer to GPIO#, not D# printed on Wemos module
+  // pins for PWM output (fans, pump)
+  #define PWM_CONTROL1_PIN 16
+  #define PWM_CONTROL2_PIN 17
+  //#define PWM_CONTROL3_PIN x
+  // pins for analog input (tank, voltages)
+  //#define ANALOG_IN1_PIN A0
+  //#define ANALOG_IN2_PIN A1
+  //#define ANALOG_IN3_PIN A2
+  //#define ANALOG_IN4_PIN A3
+  //#define ANALOG_IN5_PIN A4
+  // digital inputs (env sensors)
+  //#define DIGITAL_IN1_PIN x
+  //#define DIGITAL_IN2_PIN x
+  // digital outputs (LEDs)
+  //#define DIGITAL_OUT1_PIN x
+  //#define DIGITAL_OUT2_PIN x
+  //#define DIGITAL_OUT3_PIN x
+  // I2C
+  #define I2C_SDA_PIN 21
+  #define I2C_SCL_PIN 22
+  // SPI
 #endif
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -55,31 +103,45 @@
 #define REAR_FANS_CONTROL PWM_CONTROL
 // support fan voltage measurement
 //#define WITH_REAR_FANS_VOLTAGE                 // requires WITH_REAR_FANS, otherwise ignored
-#define REAR_FANS_VOLTAGE_READ_INTERVAL 2000   // 2 secs
-#define REAR_FANS_VOLTAGE_NUM_SAMPLES 5
+//#define REAR_FANS_VOLTAGE_READ_INTERVAL 2000   // 2 secs
+//#define REAR_FANS_VOLTAGE_NUM_SAMPLES 5
 //#define REAR_FANS_VOLTAGE_CALIBRATED 5.0
 
 // support water pump power control
-//#define WITH_WATER_PUMP
+#define WITH_WATER_PUMP
 // how to control water pump power (either PWM or MCP4162)
 #define WATER_PUMP_CONTROL PWM_CONTROL
 // support water pump voltage measurement
 //#define WITH_WATER_PUMP_VOLTAGE              // requires WITH_WATER_PUMP, otherwise ignored
-#define WATER_PUMP_VOLTAGE_READ_INTERVAL 2000  // 2 secs
-#define WATER_PUMP_VOLTAGE_NUM_SAMPLES 5
+//#define WATER_PUMP_VOLTAGE_READ_INTERVAL 2000  // 2 secs
+//#define WATER_PUMP_VOLTAGE_NUM_SAMPLES 5
 //#define WATER_PUMP_VOLTAGE_CALIBRATED 5.0
 
 // support front temperature/humidity sensor
-#define WITH_FRONT_ENV_SENSOR
-//#define FRONT_ENV_SENSOR_TYPE DHT22_SENSOR      // type of front sensor (DHT22 only)
+//#define WITH_FRONT_ENV_SENSOR
 #define FRONT_ENV_SENSOR_TYPE AM2320_SENSOR     // type of front sensor (DHT22 or AM2320)
 #define FRONT_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support rear temperature/humidity sensor
-#define WITH_REAR_ENV_SENSOR
-//#define REAR_ENV_SENSOR_TYPE DHT22_SENSOR      // type of rear sensor (DHT22 only)
+//#define WITH_REAR_ENV_SENSOR
 #define REAR_ENV_SENSOR_TYPE AM2320_SENSOR     // type of rear sensor (DHT22 or AM2320)
 #define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
+
+// support voltage measurements
+//#define WITH_VOLTAGE_MEASURE
+#define VOLTAGE_NUM_SAMPLES 5
+#define VOLTAGE_READ_INTERVAL 2000
+// ESP8266 have only one analog input port, so a port multiplexer is required
+#if defined(HW_ESP8266) && defined(WITH_VOLTAGE_MEASURE)
+  #define ANALOG_MUX_TYPE HC4051_MUX             // type of analog mux (AMS1115, HC4051 or PCF8591)
+  #define MUX_PIN_RAIL_VOLTAGE 0
+  #define MUX_PIN_MCURAIL_VOLTAGE 1
+  #define MUX_PIN_FANS_VOLTAGE 2
+  #define MUX_PIN_PUMP_VOLTAGE 3
+  #if ANALOG_MUX_TYPE == AMS1115_MUX || ANALOG_MUX_TYPE == PCF8591_MUX
+    #define ANALOG_MUX_I2C
+  #endif
+#endif  // HW_ESP8266
 
 // support bicolor status LED
 //#define WITH_BICOLOR_STATUS_LED
@@ -99,14 +161,13 @@
 
 // support WIFI features if hardware is Arduino
 #ifdef HW_ARDUINO
-  // use WIFI (set only if an ESP8266-01 is attached)
-  //#define WITH_MODEM_WIFI
+// unimplemented
 #endif  // HW_ARDUINO
 
 // serial console
 #define WITH_SERIAL
 #define SERIAL_BAUD 115200
-#define SERIAL_DELAY 2000
+#define SERIAL_DELAY 2000  // initial delay for serial port communication to settle
 #define SERIAL_REPORT_INTERVAL 5000
 // accept commands from the serial console (requires WITH_SERIAL, otherwise ignored)
 #define WITH_SERIAL_COMMANDS
@@ -114,9 +175,10 @@
 // debugging (requires WITH_SERIAL, otherwise ignored)
 #define WITH_DEBUG
 
-// recommended
+// use high PWM frequency (recommended if PWM is used)
 #define WITH_HIGH_PWMFREQ
-#define PWMFREQ_ESP8266 32000
+// Arduinos get set to ca 32kHz; ESP8266 and ESP32 can set PWM frequency by function call
+#define PWMFREQ_ESP 32000
 
 // include credentials from separate file
 #include "credentials.h"
