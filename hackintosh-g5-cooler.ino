@@ -1,3 +1,5 @@
+#define SW_VERSION "1.0"
+
 //---------------------------------------------------------------------------------------------------------------------
 // constants (to get the symbols defined, value does not really matter)
 //---------------------------------------------------------------------------------------------------------------------
@@ -44,7 +46,7 @@
 
 #ifdef WITH_SERIAL
 long    lastReportedOnSerial   = 0;
-boolean continous_reporting    = true;
+boolean continuous_reporting   = true;
 #endif
 
 #ifdef WITH_VOLTAGE_MEASURE
@@ -104,6 +106,7 @@ long  lastReadRearEnvSensor    = 0;
 IPAddress ip;
 #ifdef WITH_OTA
 #include <ArduinoOTA.h>
+boolean ota_enable = true;
 #endif
 #ifdef WITH_ESP8266_HTTPSRV
 #include <ESP8266WebServer.h>
@@ -168,6 +171,60 @@ void cmd_get_status(SerialCommands* sender)
   serial_report_values();
 }
 SerialCommand cmd_get_status_("status", cmd_get_status);
+
+void cmd_set_contrep(SerialCommands* sender)
+{
+  char* contrep = sender->Next();
+  if (contrep == NULL)
+  {
+    // report setting
+    sender->GetSerial()->print("Continuous reporting: ");
+    sender->GetSerial()->println(continuous_reporting);
+  }
+  else if (strcmp(contrep, "on") == 0)
+  {
+    // enable continuous reporting
+    continuous_reporting = true;
+  }
+  else if (strcmp(contrep, "off") == 0)
+  {
+    // disable continuous reporting
+    continuous_reporting = false;
+  }
+  else
+  {
+    sender->GetSerial()->println("ERROR invalid contrep ");
+  }
+}
+SerialCommand cmd_set_contrep_("contrep", cmd_set_contrep);
+
+#ifdef WITH_OTA
+void cmd_set_ota(SerialCommands* sender)
+{
+  char* ota = sender->Next();
+  if (ota == NULL)
+  {
+    // report setting
+    sender->GetSerial()->print("OTA: ");
+    sender->GetSerial()->println(ota_enable);
+  }
+  else if (strcmp(ota, "on") == 0)
+  {
+    // enable OTA
+    ota_enable = true;
+  }
+  else if (strcmp(ota, "off") == 0)
+  {
+    // disable OTA
+    ota_enable = false;
+  }
+  else
+  {
+    sender->GetSerial()->println("ERROR invalid ota ");
+  }
+}
+SerialCommand cmd_set_ota_("ota", cmd_set_ota);
+#endif
 
 #ifdef WITH_REAR_FANS
 void cmd_set_fan(SerialCommands* sender)
@@ -253,6 +310,8 @@ void setup ()
     serial_commands_.AddCommand(&cmd_set_fan_);
     serial_commands_.AddCommand(&cmd_set_pump_);
     serial_commands_.AddCommand(&cmd_get_status_);
+    serial_commands_.AddCommand(&cmd_set_contrep_);
+    serial_commands_.AddCommand(&cmd_set_ota_);
 #endif
 } // end setup()
 
@@ -263,8 +322,10 @@ void setup ()
 void loop()
 {
 #ifdef WITH_OTA
-    // check for over-the-air updates
-    ArduinoOTA.handle();
+    if (ota_enable) {
+      // check for over-the-air updates
+      ArduinoOTA.handle();
+    }
 #endif
 
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
@@ -318,7 +379,7 @@ void loop()
 #endif
 
 #ifdef WITH_SERIAL
-    if (continous_reporting && (millis() - lastReportedOnSerial) > SERIAL_REPORT_INTERVAL) {
+    if (continuous_reporting && (millis() - lastReportedOnSerial) > SERIAL_REPORT_INTERVAL) {
         serial_report_values();
     }
 
@@ -846,7 +907,9 @@ void init_serial() {
     Serial.begin(SERIAL_BAUD);
     delay(SERIAL_DELAY);  // grace period for reinit after reboot
   #ifdef USE_SERIAL_DEBUG
-    Serial.print(F("Detected Board: "));
+    Serial.print(F("==== v"));
+    Serial.print(SW_VERSION);
+    Serial.print(F(" starting, board: "));
     Serial.println(HW_NAME);
   #endif
 }
@@ -855,8 +918,8 @@ void serial_report_values() {
     //Serial.println();
   #ifdef WITH_REAR_FANS
     Serial.print(F("Fan speed%: "));
-    Serial.println(rearFansSpeedPercent);
-    Serial.print(F("PWM value: "));
+    Serial.print(rearFansSpeedPercent);
+    Serial.print(F(", PWM "));
     Serial.println(rearFansPwmValue);
   #ifdef WITH_REAR_FANS_VOLTAGE
     Serial.print(F("AnalogV: "));
@@ -865,8 +928,8 @@ void serial_report_values() {
   #endif
   #ifdef WITH_WATER_PUMP
     Serial.print(F("Pump speed%: "));
-    Serial.println(pumpSpeedPercent);
-    Serial.print(F("PWM value: "));
+    Serial.print(pumpSpeedPercent);
+    Serial.print(F(", PWM "));
     Serial.println(pumpPwmValue);
   #ifdef WITH_WATER_PUMP_VOLTAGE
     Serial.print(F("AnalogV: "));
