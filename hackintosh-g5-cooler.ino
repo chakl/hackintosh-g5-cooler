@@ -43,7 +43,8 @@
 //---------------------------------------------------------------------------------------------------------------------
 
 #ifdef WITH_SERIAL
-long  lastReportedOnSerial     = 0;
+long    lastReportedOnSerial   = 0;
+boolean continous_reporting    = true;
 #endif
 
 #ifdef WITH_VOLTAGE_MEASURE
@@ -150,6 +151,53 @@ ADS1115_WE adc(I2C_ADDRESS);
 #define USE_SERIAL_DEBUG
 #endif
 
+#ifdef WITH_SERIAL_COMMANDS
+#include "SerialCommands.h"
+char serial_command_buffer_[16];
+//// handler callback functions must be defined here, not in the functions section hear the end
+void cmd_unrecognized(SerialCommands* sender, const char* cmd)
+{
+  sender->GetSerial()->print("Unrecognized command [");
+  sender->GetSerial()->print(cmd);
+  sender->GetSerial()->println("]");
+}
+SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
+
+void cmd_get_status(SerialCommands* sender)
+{
+  serial_report_values();
+}
+SerialCommand cmd_get_status_("status", cmd_get_status);
+
+#ifdef WITH_REAR_FANS
+void cmd_set_fan(SerialCommands* sender)
+{
+  char* fanspeed = sender->Next();
+  if (fanspeed == NULL)
+  {
+    sender->GetSerial()->println("ERROR no fan speed ");
+    return;
+  }
+  setRearFansSpeedPercent(atoi(fanspeed));
+}
+SerialCommand cmd_set_fan_("fan", cmd_set_fan);
+#endif
+
+#ifdef WITH_WATER_PUMP
+void cmd_set_pump(SerialCommands* sender)
+{
+  char* pumpspeed = sender->Next();
+  if (pumpspeed == NULL)
+  {
+    sender->GetSerial()->println("ERROR no pump speed ");
+    return;
+  }
+  setPumpSpeedPercent(atoi(pumpspeed));
+}
+SerialCommand cmd_set_pump_("pump", cmd_set_pump);
+#endif
+#endif  // WITH_SERIAL_COMMANDS
+
 //-------------------------------------------------------------------------------------------
 // setup()
 //-------------------------------------------------------------------------------------------
@@ -201,7 +249,10 @@ void setup ()
 #endif
 
 #if defined(WITH_SERIAL) && defined(WITH_SERIAL_COMMANDS)
-    serial_prompt();
+    serial_commands_.SetDefaultHandler(cmd_unrecognized);
+    serial_commands_.AddCommand(&cmd_set_fan_);
+    serial_commands_.AddCommand(&cmd_set_pump_);
+    serial_commands_.AddCommand(&cmd_get_status_);
 #endif
 } // end setup()
 
@@ -267,25 +318,12 @@ void loop()
 #endif
 
 #ifdef WITH_SERIAL
-    if ((millis() - lastReportedOnSerial) > SERIAL_REPORT_INTERVAL) {
+    if (continous_reporting && (millis() - lastReportedOnSerial) > SERIAL_REPORT_INTERVAL) {
         serial_report_values();
     }
 
 #ifdef WITH_SERIAL_COMMANDS
-    if (Serial.available() > 0) {
-//      rearFansSpeedPercent = Serial.parseInt();
-      pumpSpeedPercent = Serial.parseInt();
-      // clear trailing RETURN char from input
-      Serial.read();
-  
-//#ifdef WITH_REAR_FANS
-//      setRearFansSpeedPercent(rearFansSpeedPercent);
-#ifdef WITH_WATER_PUMP
-      setPumpSpeedPercent(pumpSpeedPercent);
-#endif
-      serial_reply();
-      serial_prompt();
-    }
+    serial_commands_.ReadSerial();
 #endif
 
 #endif  // WITH_SERIAL
@@ -814,7 +852,7 @@ void init_serial() {
 }
 
 void serial_report_values() {
-    Serial.println();
+    //Serial.println();
   #ifdef WITH_REAR_FANS
     Serial.print(F("Fan speed%: "));
     Serial.println(rearFansSpeedPercent);
@@ -866,15 +904,5 @@ void serial_report_values() {
 }
 
 #ifdef WITH_SERIAL_COMMANDS
-void serial_prompt() {
-    Serial.println();
-    Serial.println(F("Enter fan speed (0 - 100 %):"));
-}
-
-void serial_reply() {
-    Serial.println();
-    Serial.print(F("Current fan speed: "));
-    Serial.println(rearFansSpeedPercent);
-}
 #endif  // WITH_SERIAL_COMMANDS
 #endif  // WITH_SERIAL
