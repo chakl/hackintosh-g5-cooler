@@ -18,8 +18,8 @@
   #define ANALOG_IN4_PIN A3
   #define ANALOG_IN5_PIN A4
   // digital inputs (env sensors)
-  #define DIGITAL_IN1_PIN 7
-  #define DIGITAL_IN2_PIN 8
+  #define DIGITAL_IN1_PIN 7  // (for DHT22 only)
+  #define DIGITAL_IN2_PIN 8  // (for DHT22 only)
   // digital outputs (LEDs)
   //#define DIGITAL_OUT1_PIN x
   //#define DIGITAL_OUT2_PIN x
@@ -47,8 +47,8 @@
   // pins for analog input (tank, voltages)
   #define ANALOG_IN1_PIN A0
   // digital inputs (env sensors)
-  #define DIGITAL_IN1_PIN 13          // D7
-  #define DIGITAL_IN2_PIN 15          // D8
+  #define DIGITAL_IN1_PIN 13          // D7 (for DHT22 only)
+  #define DIGITAL_IN2_PIN 15          // D8 (for DHT22 only)
   // digital outputs (LEDs)
   //#define DIGITAL_OUT1_PIN x
   //#define DIGITAL_OUT2_PIN x
