@@ -63,7 +63,7 @@
   //#define SPI_SELECT1_PIN 15          // D8
   //#define SPI_SELECT2_PIN 4           // D2
   // pins to 4051 MUX (if used)
-  #define MUX4051_OUT ANALOG_IN1_PIN (conflicts!)
+  #define MUX4051_OUT ANALOG_IN1_PIN  // (conflicts!)
   #define MUX4051_ADDR_A 14           // D5
   #define MUX4051_ADDR_B 12           // D6
   #define MUX4051_ADDR_C 13           // D7
