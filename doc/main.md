@@ -220,7 +220,11 @@ This is used to support a bicolor status LED (green/red) that is mounted on the 
 ##### WITH_SERIAL and WITH_SERIAL_COMMANDS
 
 `WITH_SERIAL` is useful for debugging with the MCU attached to an IDE. It will print startup messages and periodical sensor value data to the serial console. In production use without a permanently connected serial console, it should be commented out, because it will claim runtime memory for string operations that are never consumed. Similarily, it should be disabled if WITH_OTA is used (because there is no serial console on OTA).
-`WITH_SERIAL_COMMANDS` allows to actively inject commands from the serial console, rather than just passively reporting status. It requires `WITH_SERIAL` and is ignored otherwise.
+`WITH_SERIAL_COMMANDS` allows to actively inject commands from the serial console, rather than just passively reporting status. It requires `WITH_SERIAL` and is ignored otherwise. Supported commands:
+- `status` - show current values
+- `contrep on|off` - toggle continuous value reporting (default on)
+- `fan n` - set fan speed to n percent (0 < n <= 100)
+- `pump n` - set pump speed to n percent (0 < n <= 100)
 
 ##### WITH_ESP8266_WIFI
 
