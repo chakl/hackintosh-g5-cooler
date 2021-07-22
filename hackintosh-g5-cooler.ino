@@ -11,7 +11,7 @@
 #define AM2320_SENSOR_ 1
 #define HC4051_MUX_ 2
 #define PCF8591_MUX_ 3
-#define AMS1115_MUX_ 4
+#define ADS1115_MUX_ 4
 
 // constants for unknown data values
 #define TEMPERATURE_UNKNOWN -99
@@ -139,7 +139,7 @@ const byte muxAddressB = MUX4051_ADDR_B;
 const byte muxAddressC = MUX4051_ADDR_C; // high-order bit
 #endif
 
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == AMS1115_MUX_
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == ADS1115_MUX_
 #include <ADS1115_WE.h>
 #define I2C_ADDRESS 0x48
 ADS1115_WE adc(I2C_ADDRESS);
