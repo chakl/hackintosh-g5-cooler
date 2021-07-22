@@ -68,8 +68,8 @@ The software running on the MCU shall provide the following functionality:
 
 * PWM_FAN - fan speed (PWM)
 * PWM_PUMP - pump speed (PWM)
-* Digital1 - rear env sensor data (OneWire, DHT22)
-* Digital2 - front env sensor data (OneWire, DHT22)
+* Digital1 - rear env sensor data (OneWire, for DHT22 only)
+* Digital2 - front env sensor data (OneWire, for DHT22 only)
 * Digital3 - software poweroff (TTL)
 * <strike>Digital4 - front pushbutton LED (TTL)</strike> latchup circuit, no MCU pin needed
 * Digital5 - front status green LED (TTL)  // if bicolor status LED used
@@ -102,8 +102,8 @@ We use an old notebook power supply providing 15V DC 4 Amp, which is more than e
 
 We use a LM7805 fixed voltage regulator to provide 5V Vcc to the microcontroller. Arduinos need 5V, while most ESP boards can be powered by 5V, even though they use 3.3V internally.
 
-We planned to use a low-power 78L05 for this, as we did not expect the (Arduino) MCU to draw more than 100mA. Capacitors C1, C2 use recommended values from the datasheet on both Vin/Vout sides.
-However, the decision to use an ESP8266 MCU requires a more powerful voltage regulator, as these devices draw around 150mA in normal operation and are specified with a peak current draw of 450mA. We could have used an AMS1117 3.3 regulator that we had in the drawer, but we want a 5V power supply (to deliver 5V to the front panel USB connector).
+We planned to use a low-power 78L05 for this, as we did not expect the (Arduino) MCU to draw more than 100mA. However, the decision to use an ESP8266 MCU requires a more powerful voltage regulator, as these devices draw around 150mA in normal operation and are specified with a peak current draw of 450mA. We could have used an AMS1117 3.3 regulator that we had in the drawer, but we want a 5V power supply (to deliver 5V to the front panel USB connector).
+Capacitors C1, C2 use recommended values from the datasheet on both Vin/Vout sides.
 
 ### Fan Power Supply
 
@@ -117,13 +117,13 @@ D1 and D2 are optional protection diodes that protect the LM317 against short-ci
 
 R1=100k and C3=100n build a lowpass to turn the PWM signal from the MCU into a (more or less) constant voltage. In reality, there remains a ripple voltage on the lowpass output that gets amplified and *might* lead to noticeable oscillations of fan speed.
 
-The cut-off frequency of the lowpass is calculated as (1 / (2pi RC)). With the specified values, the cut-off frequency is around 16 Hz, which leaves some ripple voltage on the output when the MCU drives the PWM signal at its default PWM frequency (Arduino: 490 Hz, ESP8266: 1 kHz).
-
-Ripple on the fan speed control voltage turned out to be irrelevant for the brushless DC fans we are using. There were no noticable oscillations of fan rotation.
+The cut-off frequency of the lowpass is calculated as (1 / (2pi RC)). With the specified values, the cut-off frequency is around 16 Hz, which leaves some ripple voltage on the output when the MCU drives the PWM signal at its default PWM frequency (Arduino: 490 Hz, ESP8266: 1 kHz). Ripple can be reduced by using higher PWM frequencies than the default.
 
 Ripple could be reduced further by lowering the cut-off frequency. Which means increasing R and/or C. We don't want to use elkos here, so C3 won't go much higher. We are hesitating to go higher with R1 as well. We could build a 2nd order RC lowpass by simply adding another resistor and capacitor, using the same R and C values.
 
 Probably not worth the effort, as it can be improved in software by increasing the PWM frequency to >30 kHz, so the RC lowpass will be more efficient.
+
+Ripple on the fan speed control voltage turned out to be irrelevant for the brushless DC fans we are using. There were no noticable oscillations of fan rotation.
 
 #### OpAmp
 
@@ -162,7 +162,7 @@ ESP8266-12 MCUs have only one analog input pin that can accept max 1V, while the
 
 ### Water Pump Power Supply and Water Pump Voltage Measurement
 
-We have a brushless DC water pump that can be driven with 3.5V to 9V power supply. We use the same circuit as above for the water pump power supply. Rather recalculating the (R3+R4)/R5 voltage divider to limit the maximum output voltage to 9V, we use the same resistor values as for 12.5V output and will limit max output voltage in software.
+We have a brushless DC water pump that can be driven with 3.5V to 9V power supply. We use another instance of the same circuit as above for the water pump power supply. Rather recalculating the (R3+R4)/R5 voltage divider to limit the maximum output voltage to 9V, we use the same resistor values as for 12.5V output and will limit max output voltage in software.
 
 ### Water Tank Level Sensor
 
@@ -170,20 +170,20 @@ We have a brushless DC water pump that can be driven with 3.5V to 9V power suppl
 
 ### Environment Sensors
 
-The environment sensors are not shown in the schematics because they do not need electronic components (only Vcc, GND and connection to a MCU digital pin).
+The environment sensors are not shown in the schematics because they do not need electronic components (only Vcc, GND and connection to a MCU digital pin or I2C).
 
 We considered DHT11, DHT22, AM2320, SI7021 and BME280 environmental sensors. We choose to use DHT22 sensors for the following reasons:
-* unlike SI7021 and BME280, it has a plastic cover (sensor will be mounted outside the case)
-* unlike AM2320, the plastic cover has a nose with a mounting hole which helps mechanical fitting
-* unlike DHT11, it is sufficiently precise
+- we want the sensor to have a cover shield. SI7021 and BME280 have no shield.
+- the sensor should be mounted easily. Only DHT22 and AM2320B sensors have a plastic cover with a mounting hole
 
-The sensors will be mounted 30-50cm away from the MCU board. It needs 3 lines for signal, 5V Vcc and GND, so we chose shielded stereo audio cable for the connection.
+DHT22 sensors are connected by 3 lines (signal, 5V Vcc and GND). They need a dedicated MCU pin for each sensor.
+AM2320 sensors are connected by 4 lines (SDA, SCL, 5V Vcc and GND). They use the I2C bus and do not use a dedicated MCU pin for each sensor. They are slightly more precise than DHT22, are better mountable, but are also more expensive than DHT22. Only one AM2320 sensor can be attached to an I2C bus as they use a fixed I2C address.
 
 ## Software
 
 ### Supported Boards
 
-The Arduino sketch is designed to support Arduino boards with ATmega328 CPU (Uno, Nano, Mini Pro) and ESP8266 boards (ESP8266-12, Wemos D1 mini, NodeMCU or similar). Further boards might be added. The software tries to auto-detect the board that it is running on.
+The Arduino sketch is designed to support Arduino boards with ATmega328 CPU (Uno, Nano, Mini Pro) and ESP8266 boards (ESP8266-12, Wemos D1 mini, NodeMCU or similar). We are working to support ESP32 boards. Further boards might be added.
 
 ### Components and Configuration
 
