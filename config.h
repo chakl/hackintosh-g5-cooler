@@ -119,12 +119,12 @@
 
 // support front temperature/humidity sensor
 //#define WITH_FRONT_ENV_SENSOR
-#define FRONT_ENV_SENSOR_TYPE AM2320_SENSOR     // type of front sensor (DHT22 or AM2320)
+#define FRONT_ENV_SENSOR_TYPE AM2320_SENSOR_     // type of front sensor (DHT22 or AM2320)
 #define FRONT_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support rear temperature/humidity sensor
 //#define WITH_REAR_ENV_SENSOR
-#define REAR_ENV_SENSOR_TYPE AM2320_SENSOR     // type of rear sensor (DHT22 or AM2320)
+#define REAR_ENV_SENSOR_TYPE AM2320_SENSOR_     // type of rear sensor (DHT22 or AM2320)
 #define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
 // support voltage measurements
@@ -133,12 +133,12 @@
 #define VOLTAGE_READ_INTERVAL 2000
 // ESP8266 have only one analog input port, so a port multiplexer is required
 #if defined(HW_ESP8266) && defined(WITH_VOLTAGE_MEASURE)
-  #define ANALOG_MUX_TYPE HC4051_MUX             // type of analog mux (AMS1115, HC4051 or PCF8591)
+  #define ANALOG_MUX_TYPE HC4051_MUX_             // type of analog mux (ADS1115, HC4051 or PCF8591)
   #define MUX_PIN_RAIL_VOLTAGE 0
   #define MUX_PIN_MCURAIL_VOLTAGE 1
   #define MUX_PIN_FANS_VOLTAGE 2
   #define MUX_PIN_PUMP_VOLTAGE 3
-  #if ANALOG_MUX_TYPE == AMS1115_MUX || ANALOG_MUX_TYPE == PCF8591_MUX
+  #if ANALOG_MUX_TYPE == AMS1115_MUX_ || ANALOG_MUX_TYPE == PCF8591_MUX_
     #define ANALOG_MUX_I2C
   #endif
 #endif  // HW_ESP8266

@@ -7,11 +7,11 @@
 #define PWM_CONTROL 0
 #define MCP4162_CONTROL 1
 // constants for component hardware
-#define DHT22_SENSOR 0
-#define AM2320_SENSOR 1
-#define HC4051_MUX 2
-#define PCF8591_MUX 3
-#define AMS1115_MUX 4
+#define DHT22_SENSOR_ 0
+#define AM2320_SENSOR_ 1
+#define HC4051_MUX_ 2
+#define PCF8591_MUX_ 3
+#define AMS1115_MUX_ 4
 
 // constants for unknown data values
 #define TEMPERATURE_UNKNOWN -99
@@ -75,11 +75,11 @@ long  pumpPwmValue             = 0;
 float frontEnvSensorTemperature = 0;
 float frontEnvSensorHumidity    = 0;
 long  lastReadFrontEnvSensor    = 0;
-#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR_
   #include <dhtnew.h>
   DHTNEW frontDHT22Sensor(DIGITAL_IN1_PIN);
 #endif
-#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR_
   #define FRONT_ENV_SENSOR_I2C
   #include <AM2320.h>
   AM2320 frontAM2320Sensor;
@@ -90,11 +90,11 @@ long  lastReadFrontEnvSensor    = 0;
 float rearEnvSensorTemperature = 0.0;
 float rearEnvSensorHumidity    = 0.0;
 long  lastReadRearEnvSensor    = 0;
-#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
+#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR_
   #include <dhtnew.h>
   DHTNEW rearDHT22Sensor(DIGITAL_IN2_PIN);
 #endif
-#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR_
   #define REAR_ENV_SENSOR_I2C
   #include <AM2320.h>
   AM2320 rearAM2320Sensor;
@@ -131,7 +131,7 @@ ESP8266WebServer webserver(HTTPSRV_PORT);
 #define USE_I2C
 #endif
 
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
 const byte muxOut = MUX4051_OUT;         // usually A0
 // the multiplexer address select lines (A/B/C)
 const byte muxAddressA = MUX4051_ADDR_A; // low-order bit
@@ -139,7 +139,7 @@ const byte muxAddressB = MUX4051_ADDR_B;
 const byte muxAddressC = MUX4051_ADDR_C; // high-order bit
 #endif
 
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == AMS1115_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == AMS1115_MUX_
 #include <ADS1115_WE.h>
 #define I2C_ADDRESS 0x48
 ADS1115_WE adc(I2C_ADDRESS);
@@ -276,7 +276,7 @@ void setup ()
     init_spi();
 #endif
 
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
     init_analog_mux();
 #endif
 
@@ -332,7 +332,7 @@ void loop()
     }
 #endif
 
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
     // read analog mux
     if ((millis() - lastReadVoltages) > VOLTAGE_READ_INTERVAL) {
         readAnalogMux();
@@ -342,10 +342,10 @@ void loop()
 #ifdef WITH_FRONT_ENV_SENSOR
     // read front environment sensor
     if ((millis() - lastReadFrontEnvSensor) > FRONT_ENV_SENSOR_READ_INTERVAL) {
-  #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+  #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR_
         read_front_dht22();
   #endif
-  #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR_
         read_front_am2320();
   #endif
     }
@@ -354,10 +354,10 @@ void loop()
 #ifdef WITH_REAR_ENV_SENSOR
     // read rear environment sensor
     if ((millis() - lastReadRearEnvSensor) > REAR_ENV_SENSOR_READ_INTERVAL) {
-  #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
+  #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR_
       read_rear_dht22();
   #endif
-  #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+  #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR_
       read_rear_am2320();
   #endif
     }
@@ -494,7 +494,7 @@ void set_pwm_freq_arduino()
 #endif  // USE_PWM
 
 //-------------- ANALOG_MUX
-#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX
+#if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
 void init_analog_mux()
 {
     pinMode (muxOut, OUTPUT);
@@ -545,7 +545,7 @@ float readVoltage (const byte which)
     return avrg;
 }
 #endif  // WITH_VOLTAGE_MEASURE
-#endif  // ANALOG_MUX_TYPE == HC4051_MUX
+#endif  // ANALOG_MUX_TYPE == HC4051_MUX_
 
 
 //-------------- REAR_FANS
@@ -651,7 +651,7 @@ void setPumpSpeedPercent(long speed) {
 
 //-------------- FRONT_ENV_SENSOR
 #ifdef WITH_FRONT_ENV_SENSOR
-#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR
+#if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR_
 /* functions for front DHT22 env sensor */
 void init_front_env_sensor() {
   #ifdef USE_SERIAL_DEBUG
@@ -667,8 +667,8 @@ void read_front_dht22() {
     frontEnvSensorTemperature = frontDHT22Sensor.getTemperature();
     lastReadFrontEnvSensor    = frontDHT22Sensor.lastRead();
 }
-#endif  // DHT22_SENSOR
-#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR
+#endif  // DHT22_SENSOR_
+#if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_front_env_sensor() {
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Initialize front AM2320 sensor..."));
@@ -699,13 +699,13 @@ void read_front_am2320() {
   }
     lastReadFrontEnvSensor    = millis();
 }
-#endif  // AM2320_SENSOR
+#endif  // AM2320_SENSOR_
 #endif  // WITH_FRONT_ENV_SENSOR
 
 
 //-------------- REAR_ENV_SENSOR
 #ifdef WITH_REAR_ENV_SENSOR
-#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR
+#if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR_
 /* functions for rear DHT22 env sensor */
 void init_rear_env_sensor() {
   #ifdef USE_SERIAL_DEBUG
@@ -721,8 +721,8 @@ void read_rear_dht22() {
     rearEnvSensorTemperature = rearDHT22Sensor.getTemperature();
     lastReadRearEnvSensor    = rearDHT22Sensor.lastRead();
 }
-#endif  // DHT22_SENSOR
-#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR
+#endif  // DHT22_SENSOR_
+#if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_rear_env_sensor() {
   #ifdef USE_SERIAL_DEBUG
     Serial.println(F("Initialize rear AM2320 sensor..."));
@@ -753,7 +753,7 @@ void read_rear_am2320() {
   }
     lastReadRearEnvSensor    = millis();
 }
-#endif  // AM2320_SENSOR
+#endif  // AM2320_SENSOR_
 #endif  // WITH_REAR_ENV_SENSOR
 
 
