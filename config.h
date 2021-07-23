@@ -150,13 +150,15 @@
 #ifdef HW_ESP8266
   // use WIFI (comment out to disable)
   #define WITH_ESP8266_WIFI
-  // run HTTP server (requires WITH_ESP8266_WIFI, otherwise ignored)
-  #define WITH_ESP8266_HTTPSRV
-  #define HTTPSRV_PORT 80
-  // support over-the-air updates (requires WITH_ESP8266_WIFI, otherwise ignored)
-  #define WITH_OTA
-  #define OTA_PORT 8266
-  #define OTA_HOSTNAME "g5-cooler"
+  #ifdef WITH_ESP8266_WIFI
+    // run HTTP server
+    #define WITH_ESP8266_HTTPSRV
+    #define HTTPSRV_PORT 80
+    // support over-the-air updates
+    #define WITH_OTA
+    #define OTA_PORT 8266
+    #define OTA_HOSTNAME "g5-cooler"
+  #endif
 #endif  // HW_ESP8266
 
 // support WIFI features if hardware is Arduino
