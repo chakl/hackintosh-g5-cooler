@@ -659,6 +659,10 @@ void setPumpSpeedPercent(long speed) {
   #endif
   #if WATER_PUMP_CONTROL == PWM_CONTROL
     pumpPwmValue = (pumpSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
+  #ifdef USE_SERIAL_DEBUG
+    Serial.print(F("Set pump PWM to "));
+    Serial.println(pumpPwmValue);
+  #endif
     analogWrite(PWM_CONTROL2_PIN, pumpPwmValue);
   #endif
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
