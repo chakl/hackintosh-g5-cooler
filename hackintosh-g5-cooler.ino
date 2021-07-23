@@ -309,7 +309,9 @@ void setup ()
     serial_commands_.SetDefaultHandler(cmd_unrecognized);
     serial_commands_.AddCommand(&cmd_get_status_);
     serial_commands_.AddCommand(&cmd_set_contrep_);
+#ifdef WITH_OTA
     serial_commands_.AddCommand(&cmd_set_ota_);
+#endif
 #ifdef WITH_REAR_FANS
     serial_commands_.AddCommand(&cmd_set_fan_);
 #endif
