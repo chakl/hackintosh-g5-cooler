@@ -1,4 +1,4 @@
-#define SW_VERSION "1.0"
+#define SW_VERSION "1.1"
 
 //---------------------------------------------------------------------------------------------------------------------
 // constants (to get the symbols defined, value does not really matter)
@@ -27,13 +27,22 @@
 //---------------------------------------------------------------------------------------------------------------------
 #ifdef HW_ARDUINO
   #define HW_NAME "Arduino"
+  #define HW_CPUFREQ 16
   #define ANALOG_WRITE_RANGE 256
-#endif
+  // for memory reporting, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
+  #ifdef __arm__
+  // should use uinstd.h to define sbrk but Due causes a conflict
+  extern "C" char* sbrk(int incr);
+  #else  // __ARM__
+  extern char *__brkval;
+  #endif  // __arm__
+#endif  // HW_ARDUINO
 
 #ifdef HW_ESP8266
   #define HW_NAME "ESP8266"
   //#define ANALOG_WRITE_RANGE 1024
   #define ANALOG_WRITE_RANGE 256
+  #include <ESP.h>
 #endif
 
 #ifdef HW_ESP32
@@ -43,6 +52,9 @@
 //---------------------------------------------------------------------------------------------------------------------
 // global section - global vars and included definitions/functions for components
 //---------------------------------------------------------------------------------------------------------------------
+
+long freeHeapMem               = 0;
+long heapFragmentation         = 0;
 
 #ifdef WITH_SERIAL
 long    lastReportedOnSerial   = 0;
@@ -327,6 +339,11 @@ void setup ()
 //-------------------------------------------------------------------------------------------
 void loop()
 {
+    freeHeapMem = getFreeHeapMem();
+#ifndef HW_ARDUINO
+    heapFragmentation = getMemoryFragmentation();
+#endif
+
 #ifdef WITH_OTA
     if (ota_enable) {
       // check for over-the-air updates
@@ -813,6 +830,10 @@ void rootPage() {
                    "Rear temperature: " + String(rearEnvSensorTemperature) + "C\r\n" +
                    "Rear humidity: " + String(rearEnvSensorHumidity) + "%\r\n" +
 #endif
+                   "Free heap memory: " + String(freeHeapMem) + "Byte\r\n" +
+#ifndef HW_ARDUINO
+                   "Heap fragmentation: " + String(heapFragmentation) + "%\r\n" +
+#endif
                    "");
 }
  
@@ -913,15 +934,18 @@ void init_serial() {
     Serial.begin(SERIAL_BAUD);
     delay(SERIAL_DELAY);  // grace period for reinit after reboot
   #ifdef USE_SERIAL_DEBUG
-    Serial.print(F("==== v"));
+    Serial.print(F("\n==== v"));
     Serial.print(SW_VERSION);
     Serial.print(F(" starting, board: "));
-    Serial.println(HW_NAME);
+    Serial.print(HW_NAME);
+    Serial.print(F(", CPU speed: "));
+    Serial.print(getCpuSpeed());
+    Serial.println(F("MHz"));
   #endif
 }
 
 void serial_report_values() {
-    //Serial.println();
+    Serial.println();
   #ifdef WITH_REAR_FANS
     Serial.print(F("Fan speed%: "));
     Serial.print(rearFansSpeedPercent);
@@ -968,6 +992,13 @@ void serial_report_values() {
     Serial.println(pumpVoltage);
   #endif
   #endif
+    Serial.print(F("Free heap memory: "));
+    Serial.println(freeHeapMem);
+  #ifndef HW_ARDUINO
+    Serial.print(F("Heap memory fragmentation%: "));
+    Serial.println(heapFragmentation);
+  #endif
+    Serial.println();
 
     lastReportedOnSerial = millis();
 }
@@ -975,3 +1006,42 @@ void serial_report_values() {
 #ifdef WITH_SERIAL_COMMANDS
 #endif  // WITH_SERIAL_COMMANDS
 #endif  // WITH_SERIAL
+
+//-------------- SYSTEM (memory, CPU speed)
+#ifdef HW_ARDUINO
+//// report free heap memory on Arduino, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
+int freeMemory() {
+  char top;
+#ifdef __arm__
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  return &top - __brkval;
+#else  // __arm__
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+#endif  // HW_ARDUINO
+
+int getFreeHeapMem() {
+#ifdef HW_ARDUINO
+    return freeMemory();
+#endif
+#if defined(HW_ESP8266) || defined(ESP32)
+    return ESP.getFreeHeap();
+#endif
+}
+
+#ifndef HW_ARDUINO
+int getMemoryFragmentation() {
+    return ESP.getHeapFragmentation();
+}
+#endif
+
+int getCpuSpeed() {
+#ifdef HW_ARDUINO
+    return HW_CPUFREQ;
+#endif
+#if defined(HW_ESP8266) || defined(ESP32)
+    return ESP.getCpuFreqMHz();
+#endif
+}
