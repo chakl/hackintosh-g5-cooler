@@ -438,7 +438,11 @@ void loop()
 #ifdef USE_I2C
 void init_i2c() {
     printlnA(F("Initialize I2C..."));
+#ifdef HW_ARDUINO
+    Wire.begin();
+#else
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+#endif
 }
 #endif  // USE_I2C
 
