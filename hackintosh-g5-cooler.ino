@@ -27,7 +27,7 @@
 //---------------------------------------------------------------------------------------------------------------------
 #ifdef HW_ARDUINO
   #define HW_NAME "Arduino"
-  #define HW_CPUFREQ 16
+  #define HW_CPUFREQ 16  // fixed, cannot query
   #define ANALOG_WRITE_RANGE 256
   // for memory reporting, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
   #ifdef __arm__
@@ -45,7 +45,7 @@
   #include <ESP.h>
 #endif
 
-#ifdef HW_ESP32
+#ifdef HW_ESP32  // not fully supported yet
   #define HW_NAME "ESP32"
 #endif
 
@@ -290,7 +290,7 @@ void setup ()
 #endif
 
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
-    init_analog_mux();
+    init_analog_mux4051();
 #endif
 
 #ifdef WITH_REAR_FANS
@@ -351,7 +351,7 @@ void loop()
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
     // read analog mux
     if ((millis() - lastReadVoltages) > VOLTAGE_READ_INTERVAL) {
-        readAnalogMux();
+        readAnalogMux4051();
     }
 #endif
 
@@ -497,14 +497,14 @@ void set_pwm_freq_arduino()
 
 //-------------- ANALOG_MUX
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
-void init_analog_mux()
+void init_analog_mux4051()
 {
     pinMode (muxOut, OUTPUT);
     pinMode (muxAddressA, OUTPUT);
     pinMode (muxAddressB, OUTPUT);
     pinMode (muxAddressC, OUTPUT);
 }
-void readAnalogMux()
+void readAnalogMux4051()
 {
 #ifdef WITH_VOLTAGE_MEASURE
     railVoltage     = readVoltage(MUX_PIN_RAIL_VOLTAGE);
@@ -547,12 +547,12 @@ float readVoltage (const byte which)
 /* functions for rear fans */
 #ifdef WITH_REAR_FANS
 void init_rear_fans() {
-  int val = 0;
+    int val = 0;
   #if REAR_FANS_CONTROL == PWM_CONTROL
-  int pin = PWM_CONTROL1_PIN;
+    int pin = PWM_CONTROL1_PIN;
   #endif
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
-  int pin = SPI_SELECT1_PIN;
+    int pin = SPI_SELECT1_PIN;
   #endif
     consolePrintln("Initialize rear fans to 0");
     pinMode(pin, OUTPUT);
@@ -569,7 +569,7 @@ void setRearFansSpeedRaw(int pin, long value) {
 void setRearFansSpeedPercent(long speed) {
     if (speed < 0) {
       rearFansSpeedPercent = 0;
-    } else if (speed >= 100) {
+    } else if (speed > 100) {
       rearFansSpeedPercent = 100;
     } else {
       rearFansSpeedPercent = speed;
@@ -592,12 +592,12 @@ void setRearFansSpeedPercent(long speed) {
 #ifdef WITH_WATER_PUMP
 /* functions for water pump */
 void init_water_pump() {
-  int val = 0;
+    int val = 0;
   #if WATER_PUMP_CONTROL == PWM_CONTROL
-  int pin = PWM_CONTROL2_PIN;
+    int pin = PWM_CONTROL2_PIN;
   #endif
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
-  int pin = SPI_SELECT2_PIN;
+    int pin = SPI_SELECT2_PIN;
   #endif
     consolePrintln("Initialize water pump to 0");
     pinMode(pin, OUTPUT);
@@ -614,7 +614,7 @@ void setWaterPumpSpeedRaw(int pin, long value) {
 void setPumpSpeedPercent(long speed) {
     if (speed < 0) {
       pumpSpeedPercent = 0;
-    } else if (speed >= 100) {
+    } else if (speed > 100) {
       pumpSpeedPercent = 100;
     } else {
       pumpSpeedPercent = speed;
@@ -651,8 +651,8 @@ void read_front_dht22() {
 #endif  // DHT22_SENSOR_
 #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_front_env_sensor() {
-  consolePrintlnA("Initialize front AM2320 sensor...");
-  // nothing to do
+    consolePrintlnA("Initialize front AM2320 sensor...");
+    // nothing to do
 }
 void read_front_am2320() {
   switch(frontAM2320Sensor.Read()) {
@@ -700,7 +700,7 @@ void read_rear_dht22() {
 #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_rear_env_sensor() {
     consolePrintln("Initialize rear AM2320 sensor...");
-  // nothing to do
+    // nothing to do
 }
 void read_rear_am2320() {
   switch(rearAM2320Sensor.Read()) {
@@ -735,7 +735,6 @@ void connect_wifi_esp8266()
 {
     // Connect to WiFi network
     consolePrintln("Connecting to %s", WIFI_SSID);
-
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
@@ -747,6 +746,7 @@ void connect_wifi_esp8266()
 
 #ifdef WITH_ESP8266_HTTPSRV
 /* functions for embedded web server */
+// build XML string of current status data
 const char *  xmlstatus() {
     PGM_P xml_begin = PSTR("<g5-cooler board=\"%s\" cpuspeed=\"%u\" runtime=\"%u\">\r\n");
     PGM_P xml_end   = PSTR("</g5-cooler>\r\n");
@@ -808,7 +808,6 @@ void start_web_server() {
     // Start Web Server
     webserver.begin();
 }
-
 #endif  // WITH_ESP8266_HTTPSRV
 
 void init_esp8266_wifi() {
@@ -867,8 +866,7 @@ void init_esp8266_wifi() {
 void init_serial() {
     Serial.begin(SERIAL_BAUD);
     delay(SERIAL_DELAY);  // grace period for reinit after reboot
-    int cpuspeed = getCpuSpeed();
-    consolePrintln("\n==== v%s starting, board: %s, CPU speed: %u MHz", SW_VERSION, HW_NAME, cpuspeed);
+    consolePrintln("\n==== v%s starting, board: %s, CPU speed: %u MHz", SW_VERSION, HW_NAME, getCpuSpeed());
 }
 
 void serial_report_values() {
@@ -910,8 +908,6 @@ void serial_report_values() {
     lastReportedOnSerial = millis();
 }
 
-#ifdef WITH_SERIAL_COMMANDS
-#endif  // WITH_SERIAL_COMMANDS
 #endif  // WITH_SERIAL
 
 //-------------- SYSTEM (memory, CPU speed)
@@ -953,6 +949,7 @@ int getCpuSpeed() {
 #endif
 }
 
+// generic println() function
 void consolePrintln(const char *format, ...)
 {
     char buffer[256];

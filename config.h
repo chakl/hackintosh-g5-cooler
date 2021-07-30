@@ -173,7 +173,6 @@
   #define SERIAL_BAUD 115200
   #define SERIAL_DELAY 2000  // initial delay for serial port communication to settle
   #define SERIAL_REPORT_INTERVAL 5000
-
   // accept commands from the serial console (requires WITH_SERIAL, otherwise ignored)
   #define WITH_SERIAL_COMMANDS
 #endif
