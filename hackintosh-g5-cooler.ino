@@ -162,17 +162,6 @@ ADS1115_WE adc(I2C_ADDRESS);
 #define STATUS_GREEN_LED_PIN DIGITAL_OUT2_PIN
 #endif
 
-#if defined(WITH_SERIAL)
-//// defines must come before the include
-#ifndef WITH_DEBUG
-#define DEBUG_DISABLED
-#endif
-//#define DEBUG_MINIMUM true
-#define DEBUG_DISABLE_DEBUGGER true
-#define DEBUG_AUTO_FUNC_DISABLED true
-#include "SerialDebug.h"
-#endif
-
 #ifdef WITH_SERIAL_COMMANDS
 #include "SerialCommands.h"
 char serial_command_buffer_[16];
@@ -281,9 +270,6 @@ void setup ()
 {
 #ifdef WITH_SERIAL
     init_serial();
-#ifdef WITH_DEBUG
-    debugSetProfiler(false);
-#endif
 #endif
 
 #if defined(USE_PWM) && defined(WITH_HIGH_PWMFREQ)
@@ -422,10 +408,6 @@ void loop()
 
 #endif  // WITH_SERIAL
 
-#if defined(WITH_SERIAL) && defined(WITH_DEBUG)
-    debugHandle();
-#endif
-
     delay(LOOP_DELAY);
 } // end loop()
 
@@ -437,7 +419,7 @@ void loop()
 //-------------- I2C
 #ifdef USE_I2C
 void init_i2c() {
-    printlnA(F("Initialize I2C..."));
+    consolePrintln("Initialize I2C...");
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 }
 #endif  // USE_I2C
@@ -446,15 +428,12 @@ void init_i2c() {
 //-------------- SPI
 #ifdef USE_SPI
 void init_spi() {
-    printlnA(F("Initialize SPI..."));
+    consolePrintln("Initialize SPI...");
     SPI.begin();
     SPI.setBitOrder(MSBFIRST);  // needed for MCP4162
 }
 void writeSPIvalue(int line, int value) {
-    printA(F("Write "));
-    printA(value);
-    printA(F(" to SPI line "));
-    printlnA(line);
+    consolePrintln("Write %u to SPI line %u", value, line);
     digitalWrite(line, LOW);
     SPI.transfer( (value & 0x100) ? 1 : 0 );
     SPI.transfer( value & 0xff ); // send value (0~255)
@@ -483,7 +462,7 @@ void init_pwm() {
  */
 void set_pwm_freq_arduino()
 {
-  printlnA(F("Initialize PWM frequency..."));
+  consolePrintln("Initialize PWM frequency...");
 // For Arduino Uno, Nano, YourDuino RoboRED, Mini Driver, Lilly Pad and any other board using ATmega 8, 168 or 328
 //---------------------------------------------- Set PWM frequency for D5 & D6 -------------------------------
 //NOTE: Changing this timer 0 affects millis() and delay!
@@ -552,12 +531,7 @@ float readVoltage (const byte which)
     }
     float avrg = sum / count;
     // MISSING: convert to voltage value
-/*
-    printA(F("Raw analog sensor "));
-    printA(which);
-    printA(F(", val "));
-    printlnA(avrg);
-*/
+    consolePrintln("Raw analog sensor %s, val %.2f", which, avrg);
     return avrg;
 }
 #endif  // WITH_VOLTAGE_MEASURE
@@ -575,7 +549,7 @@ void init_rear_fans() {
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
   int pin = SPI_SELECT1_PIN;
   #endif
-    printlnA(F("Initialize rear fans to 0"));
+    consolePrintln("Initialize rear fans to 0");
     pinMode(pin, OUTPUT);
     setRearFansSpeedRaw(pin, val);
 }
@@ -595,12 +569,10 @@ void setRearFansSpeedPercent(long speed) {
     } else {
       rearFansSpeedPercent = speed;
     }
-    printA(F("Set rear fans speed% to "));
-    printlnA(rearFansSpeedPercent);
+    consolePrintln("Set rear fans speed%% to %u", rearFansSpeedPercent);
   #if REAR_FANS_CONTROL == PWM_CONTROL
     rearFansPwmValue = (rearFansSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
-    printA(F("Set rear fans PWM to "));
-    printlnA(rearFansPwmValue);
+    consolePrintln("Set rear fans PWM to %u", rearFansPwmValue);
     analogWrite(PWM_CONTROL1_PIN, rearFansPwmValue);
   #endif
   #if REAR_FANS_CONTROL == MCP4162_CONTROL
@@ -622,7 +594,7 @@ void init_water_pump() {
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
   int pin = SPI_SELECT2_PIN;
   #endif
-    printlnA(F("Initialize water pump to 0"));
+    consolePrintln("Initialize water pump to 0");
     pinMode(pin, OUTPUT);
     setWaterPumpSpeedRaw(pin, val);
 }
@@ -642,12 +614,10 @@ void setPumpSpeedPercent(long speed) {
     } else {
       pumpSpeedPercent = speed;
     }
-    printA(F("Set pump speed% to "));
-    printlnA(pumpSpeedPercent);
+    consolePrintln("Set pump speed%% to %u", pumpSpeedPercent);
   #if WATER_PUMP_CONTROL == PWM_CONTROL
     pumpPwmValue = (pumpSpeedPercent / 100.0) * (ANALOG_WRITE_RANGE - 1);
-    printA(F("Set pump PWM to "));
-    printlnA(pumpPwmValue);
+    consolePrintln("Set pump PWM to ", pumpPwmValue);
     analogWrite(PWM_CONTROL2_PIN, pumpPwmValue);
   #endif
   #if WATER_PUMP_CONTROL == MCP4162_CONTROL
@@ -662,7 +632,7 @@ void setPumpSpeedPercent(long speed) {
 #if FRONT_ENV_SENSOR_TYPE == DHT22_SENSOR_
 /* functions for front DHT22 env sensor */
 void init_front_env_sensor() {
-    printlnA(F("Initialize front DHT22 sensor..."));
+    consolePrintln("Initialize front DHT22 sensor...");
     // maybe adjust DHT22 sensor offsets (example)
     //frontDHT22Sensor.setHumOffset(10);
     //frontDHT22Sensor.setTempOffset(-3.5);
@@ -676,18 +646,18 @@ void read_front_dht22() {
 #endif  // DHT22_SENSOR_
 #if FRONT_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_front_env_sensor() {
-  printlnA(F("Initialize front AM2320 sensor..."));
+  consolePrintlnA("Initialize front AM2320 sensor...");
   // nothing to do
 }
 void read_front_am2320() {
   switch(frontAM2320Sensor.Read()) {
     case 2:
-      printlnW(F("Front AM2320 CRC failed"));
+      consolePrintln("Front AM2320 CRC failed");
       frontEnvSensorHumidity    = HUMIDITY_UNKNONW;
       frontEnvSensorTemperature = TEMPERATURE_UNKNOWN;
       break;
     case 1:
-      printlnW(F("Front AM2320 sensor offline"));
+      consolePrintln("Front AM2320 sensor offline");
       frontEnvSensorHumidity    = HUMIDITY_UNKNONW;
       frontEnvSensorTemperature = TEMPERATURE_UNKNOWN;
       break;
@@ -710,7 +680,7 @@ void read_front_am2320() {
 #if REAR_ENV_SENSOR_TYPE == DHT22_SENSOR_
 /* functions for rear DHT22 env sensor */
 void init_rear_env_sensor() {
-    printlnA(F("Initialize rear DHT22 sensor..."));
+    consolePrintln("Initialize rear DHT22 sensor...");
     // maybe adjust DHT22 sensor offsets (example)
     //rearDHT22Sensor.setHumOffset(10);
     //rearDHT22Sensor.setTempOffset(-3.5);
@@ -724,18 +694,18 @@ void read_rear_dht22() {
 #endif  // DHT22_SENSOR_
 #if REAR_ENV_SENSOR_TYPE == AM2320_SENSOR_
 void init_rear_env_sensor() {
-    printlnA(F("Initialize rear AM2320 sensor..."));
+    consolePrintln("Initialize rear AM2320 sensor...");
   // nothing to do
 }
 void read_rear_am2320() {
   switch(rearAM2320Sensor.Read()) {
     case 2:
-      printlnW(F("Rear AM2320 CRC failed"));
+      consolePrintln("Rear AM2320 CRC failed");
       rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
       rearEnvSensorTemperature = TEMPERATURE_UNKNOWN;
       break;
     case 1:
-      printlnW(F("Rear AM2320 sensor offline"));
+      consolePrintln("Rear AM2320 sensor offline");
       rearEnvSensorHumidity    = HUMIDITY_UNKNONW;
       rearEnvSensorTemperature = TEMPERATURE_UNKNOWN;
       break;
@@ -759,22 +729,15 @@ void read_rear_am2320() {
 void connect_wifi_esp8266()
 {
     // Connect to WiFi network
-    printlnA();
-    printA(F("Connecting to "));
-    printlnA(WIFI_SSID);
+    consolePrintln("Connecting to %s", WIFI_SSID);
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-      printI(F("."));
+      Serial.print(".");
     }
-    printlnI();
     ip = WiFi.localIP();
-
-    printA(F("Connected to "));
-    printA(WIFI_SSID);
-    printA(F(" , IP address: "));
-    printlnA(ip);
+    consolePrintln("\r\nConnected to %s, IP address: %s", WIFI_SSID, ip.toString().c_str());
 }
 
 #ifdef WITH_ESP8266_HTTPSRV
@@ -856,40 +819,33 @@ void init_esp8266_wifi() {
         type = F("filesystem");
       }
       // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-      printlnA("Start updating " + type);
+      consolePrintln("Start updating %s", type);
     });
     ArduinoOTA.onEnd([]() {
-      printlnA("\nEnd");
+      consolePrintln("\nEnd");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      printA(F("Progress: "));
-      printA(progress / (total / 100));
-      printA(F("\r"));
+      consolePrintln("Progress: %u\r", progress / (total / 100));
     });
     ArduinoOTA.onError([](ota_error_t error) {
-      printA(F("Error["));
-      printA(error);
-      printA(F("]: "));
       if (error == OTA_AUTH_ERROR) {
-        printlnA(F("Auth Failed"));
+        consolePrintln("Auth Failed");
       } else if (error == OTA_BEGIN_ERROR) {
-        printlnA(F("Begin Failed"));
+        consolePrintln("Begin Failed");
       } else if (error == OTA_CONNECT_ERROR) {
-        printlnA(F("Connect Failed"));
+        consolePrintln("Connect Failed");
       } else if (error == OTA_RECEIVE_ERROR) {
-        printlnA(F("Receive Failed"));
+        consolePrintln("Receive Failed");
       } else if (error == OTA_END_ERROR) {
-        printlnA(F("End Failed"));
+        consolePrintln("End Failed");
       }
     });
-    printA(F("Start OTA on port "));
-    printlnA(OTA_PORT);
+    consolePrintln("Start OTA on port %u", OTA_PORT);
     ArduinoOTA.begin();
 #endif  // WITH_OTA
 
 #ifdef WITH_ESP8266_HTTPSRV
-    printA(F("Start web server on port "));
-    printlnA(HTTPSRV_PORT);
+    consolePrintln("Start web server on port %u", HTTPSRV_PORT);
     start_web_server();
 #endif
 }
@@ -903,70 +859,45 @@ void init_esp8266_wifi() {
 void init_serial() {
     Serial.begin(SERIAL_BAUD);
     delay(SERIAL_DELAY);  // grace period for reinit after reboot
-    printA(F("\n==== v"));
-    printA(SW_VERSION);
-    printA(F(" starting, board: "));
-    printA(HW_NAME);
-    printA(F(", CPU speed: "));
-    printA(getCpuSpeed());
-    printlnA(F("MHz"));
+    int cpuspeed = getCpuSpeed();
+    consolePrintln("\n==== v%s starting, board: %s, CPU speed: %u MHz", SW_VERSION, HW_NAME, cpuspeed);
 }
 
 void serial_report_values() {
-    printlnA();
   #ifdef WITH_REAR_FANS
-    printA(F("Fan speed%: "));
-    printA(rearFansSpeedPercent);
-    printA(F(", PWM "));
-    printlnA(rearFansPwmValue);
+    consolePrintln("\nFan speed%%: %u, PWM %u", rearFansSpeedPercent, rearFansPwmValue);
   #ifdef WITH_REAR_FANS_VOLTAGE
-    printA(F("AnalogV: "));
-    printlnA(rearFansAnalogIn);
+    consolePrintln("AnalogV: %u", rearFansAnalogIn);
   #endif
   #endif
   #ifdef WITH_WATER_PUMP
-    printA(F("Pump speed%: "));
-    printA(pumpSpeedPercent);
-    printA(F(", PWM "));
-    printlnA(pumpPwmValue);
+    consolePrintln("Pump speed%%: %u, PWM %u", pumpSpeedPercent, pumpPwmValue);
   #ifdef WITH_WATER_PUMP_VOLTAGE
-    printA(F("AnalogV: "));
-    printlnA(pumpAnalogIn);
+    consolePrintln("AnalogV: %.2f", pumpAnalogIn);
   #endif
   #endif
   #ifdef WITH_FRONT_ENV_SENSOR
-    printA(F("Front temperature: "));
-    printlnA(frontEnvSensorTemperature);
-    printA(F("Front humidity%: "));
-    printlnA(frontEnvSensorHumidity);
+    consolePrintln("Front temperature: %.2f");
+    consolePrintln("Front humidity%: %.2f");
   #endif
   #ifdef WITH_REAR_ENV_SENSOR
-    printA(F("Rear temperature: "));
-    printlnA(rearEnvSensorTemperature);
-    printA(F("Rear humidity%: "));
-    printlnA(rearEnvSensorHumidity);
+    consolePrintln("Rear temperature: %.2f", rearEnvSensorTemperature);
+    consolePrintln("Rear humidity%: %.2f", rearEnvSensorHumidity);
   #endif
   #ifdef WITH_VOLTAGE_MEASURE
-    printA(F("RailVolts: "));
-    printlnA(railVoltage);
-    printA(F("MCURailVolts: "));
-    printlnA(mcuRailVoltage);
+    consolePrintln("RailVolts: %.2f", railVoltage);
+    consolePrintln("MCURailVolts: %.2f", mcuRailVoltage);
   #ifdef WITH_REAR_FANS
-    printA(F("FansVolts: "));
-    printlnA(rearFansVoltage);
+    consolePrintln("FansVolts: %.2f", rearFansVoltage);
   #endif
   #ifdef WITH_WATER_PUMP
-    printA(F("PumpVolts: "));
-    printlnA(pumpVoltage);
+    consolePrintln("PumpVolts: %.2f", pumpVoltage);
   #endif
   #endif
-    printA(F("Free heap memory: "));
-    printlnA(freeHeapMem);
+    consolePrintln("Free heap memory: %u", freeHeapMem);
   #ifndef HW_ARDUINO
-    printA(F("Heap memory fragmentation%: "));
-    printlnA(heapFragmentation);
+    consolePrintln("Heap memory fragmentation%%: %u", heapFragmentation);
   #endif
-    printlnA();
 
     lastReportedOnSerial = millis();
 }
@@ -1011,5 +942,17 @@ int getCpuSpeed() {
 #endif
 #if defined(HW_ESP8266) || defined(ESP32)
     return ESP.getCpuFreqMHz();
+#endif
+}
+
+void consolePrintln(const char *format, ...)
+{
+    char buffer[256];
+    va_list args;
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    va_end(args);
+#ifdef WITH_SERIAL
+    Serial.println(buffer);
 #endif
 }
