@@ -745,37 +745,42 @@ void connect_wifi_esp8266()
 }
 
 #ifdef WITH_ESP8266_HTTPSRV
+    char xmlbuf[1024];
 /* functions for embedded web server */
-// Handle Root URI
-void rootPage() {
-    webserver.send(200, F("text/plain"),
+
+const char *  xmlstatus() {
+    PGM_P xml_begin = PSTR("<g5-cooler board=\"%s\" cpuspeed=\"%u\">\r\n");
+    PGM_P xml_end   = PSTR("</g5-cooler>\r\n");
+    PGM_P xml_wifi  = PSTR("  <wifi ssid=\"%s\" ip=\"%s\"/>\r\n");
+    PGM_P xml_mem   = PSTR("  <memory heap=\"%u\" fragmentation=\"%u\"/>\r\n");
+    sprintf_P(xmlbuf, xml_begin, HW_NAME, getCpuSpeed());
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_wifi, WIFI_SSID, ip.toString().c_str());
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_mem, freeHeapMem, heapFragmentation);
 #ifdef WITH_REAR_FANS
-                   "Fan speed: " + String(rearFansSpeedPercent) + "%\r\n" +
-#ifdef WITH_REAR_FANS_VOLTAGE
-                   "Fan voltage: " + String(rearFansVoltage) + "V\r\n" +
-#endif
+    PGM_P xml_rfans = PSTR("  <rear-fans speed=\"%u\" pwm=\"%u\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_rfans, rearFansSpeedPercent, rearFansPwmValue);
 #endif
 #ifdef WITH_WATER_PUMP
-                   "Pump speed: " + String(pumpSpeedPercent) + "%\r\n" +
-#ifdef WITH_WATER_PUMP_VOLTAGE
-                   "Pump voltage: " + String(pumpVoltage) + "V\r\n" +
-#endif
+    PGM_P xml_pump  = PSTR("  <water-pump speed=\"%u\" pwm=\"%u\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_pump, pumpSpeedPercent, pumpPwmValue);
 #endif
 #ifdef WITH_FRONT_ENV_SENSOR
-                   "Front temperature: " + String(frontEnvSensorTemperature) + "C\r\n" +
-                   "Front humidity: " + String(frontEnvSensorHumidity) + "%\r\n" +
+    PGM_P xml_fenv  = PSTR("  <front-env temperature=\"%.2f\" humidity=\"%.2f\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_fenv, frontEnvSensorTemperature, frontEnvSensorHumidity);
 #endif
 #ifdef WITH_REAR_ENV_SENSOR
-                   "Rear temperature: " + String(rearEnvSensorTemperature) + "C\r\n" +
-                   "Rear humidity: " + String(rearEnvSensorHumidity) + "%\r\n" +
+    PGM_P xml_renv  = PSTR("  <rear-env temperature=\"%.2f\" humidity=\"%.2f\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_renv, rearEnvSensorTemperature, rearEnvSensorHumidity);
 #endif
-                   "Free heap memory: " + String(freeHeapMem) + "Byte\r\n" +
-#ifndef HW_ARDUINO
-                   "Heap fragmentation: " + String(heapFragmentation) + "%\r\n" +
-#endif
-                   "");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_end);
+    return xmlbuf;
 }
- 
+
+// Handle Root URI
+void rootPage() {
+    webserver.send(200, F("text/plain"), xmlstatus());
+}
+
 // Handle 404
 void notfoundPage(){
     webserver.send(404, F("text/plain"), F("404: Not found"));
