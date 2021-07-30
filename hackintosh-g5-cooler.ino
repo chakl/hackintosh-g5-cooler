@@ -14,8 +14,9 @@
 #define ADS1115_MUX_ 4
 
 // constants for unknown data values
-#define TEMPERATURE_UNKNOWN -99
-#define HUMIDITY_UNKNONW -99
+#define TEMPERATURE_UNKNOWN NaN
+#define HUMIDITY_UNKNOWN NaN
+#define VOLTAGE_UNKNOWN NaN
 
 //---------------------------------------------------------------------------------------------------------------------
 // include config from separate file
