@@ -153,6 +153,7 @@
   #ifdef WITH_ESP8266_WIFI
     // run HTTP server
     #define WITH_ESP8266_HTTPSRV
+    #define HTTPSRV_XMLBUFSIZE 1024
     #define HTTPSRV_PORT 80
     // support over-the-air updates
     #define WITH_OTA
