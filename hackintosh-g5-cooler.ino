@@ -272,6 +272,10 @@ void setup ()
     init_serial();
 #endif
 
+#ifdef WITH_ESP8266_WIFI
+    init_esp8266_wifi();
+#endif
+
 #if defined(USE_PWM) && defined(WITH_HIGH_PWMFREQ)
     init_pwm();
 #endif
@@ -307,10 +311,6 @@ void setup ()
 #ifdef WITH_BICOLOR_STATUS_LED
     pinMode(STATUS_GREEN_LED_PIN, OUTPUT);
     pinMode(STATUS_RED_LED_PIN, OUTPUT);
-#endif
-
-#ifdef WITH_ESP8266_WIFI
-    init_esp8266_wifi();
 #endif
 
 #if defined(WITH_SERIAL) && defined(WITH_SERIAL_COMMANDS)
