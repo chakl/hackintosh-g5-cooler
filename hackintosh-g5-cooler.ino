@@ -32,6 +32,7 @@
   #define HW_NAME "Arduino"
   #define HW_CPUFREQ 16  // fixed, cannot query
   #define ANALOG_WRITE_RANGE 256
+  #define ANALOG_READ_RANGE 1024
   // for memory reporting, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
   #ifdef __arm__
   // should use uinstd.h to define sbrk but Due causes a conflict
@@ -45,6 +46,7 @@
   #define HW_NAME "ESP8266"
   //#define ANALOG_WRITE_RANGE 1024
   #define ANALOG_WRITE_RANGE 256
+  #define ANALOG_READ_RANGE 1024
   #include <ESP.h>
 #endif
 
@@ -114,6 +116,12 @@ long  lastReadRearEnvSensor    = 0;
   #include <AM2320.h>
   AM2320 rearAM2320Sensor;
 #endif
+#endif
+
+#ifdef WITH_TANK_LEVEL
+long  lastReadTankLevel        = 0;
+float tankLevel                = 0.0;
+float tankLevelVoltage         = 0.0;
 #endif
 
 #ifdef WITH_FS
@@ -409,6 +417,13 @@ void loop()
     // read water pump voltage
     if ((millis() - lastReadPumpVoltage) > WATER_PUMP_VOLTAGE_READ_INTERVAL) {
         read_water_pump_voltage();
+    }
+#endif
+
+#ifdef WITH_TANK_LEVEL
+    // read tank level voltage
+    if ((millis() - lastReadTankLevel) > TANK_LEVEL_READ_INTERVAL) {
+        read_tank_level();
     }
 #endif
 
@@ -771,6 +786,37 @@ void read_rear_am2320() {
 #endif  // WITH_REAR_ENV_SENSOR
 
 
+//-------------- GENERIC VOLTAGE MEASUREMENT
+#if defined(WITH_TANK_LEVEL) || defined(WITH_VOLTAGE_MEASURE)
+float generic_voltage_read(int pin)
+{
+    // read selected analog pin: take a number of analog samples and add them up
+    int sum       = 0;      // sum of samples taken
+    int count     = 0;      // current sample number
+    while (count < VOLTAGE_NUM_SAMPLES) {
+        sum += analogRead(pin);
+        count++;
+        delay(VOLTAGE_READ_DELAY);
+    }
+    float avrg = sum / count;
+    consolePrintln("Raw analog sensor %s, val %.2f", pin, avrg);
+    // return float between 0 and ANALOG_READ_RANGE-1
+    return avrg;
+}
+#endif  // WITH_TANK_LEVEL || WITH_VOLTAGE_MEASURE
+
+
+//-------------- TANK LEVEL
+#ifdef WITH_TANK_LEVEL
+void read_tank_level()
+{
+    tankLevel = generic_voltage_read(TANK_LEVEL_PIN) / ANALOG_READ_RANGE;
+    tankLevelVoltage = tankLevel * TANK_LEVEL_REF_VOLTAGE;
+    lastReadTankLevel    = millis();
+}
+#endif  // WITH_TANK_LEVEL
+
+
 //-------------- WIFI
 #ifdef WITH_ESP8266_WIFI
 /* functions for WiFi support */
@@ -805,6 +851,10 @@ const char *  xmlstatus() {
 #ifdef WITH_WATER_PUMP
     PGM_P xml_pump  = PSTR("  <water-pump speed=\"%u\" pwm=\"%u\"/>\r\n");
     sprintf_P(xmlbuf + strlen(xmlbuf), xml_pump, pumpSpeedPercent, pumpPwmValue);
+#endif
+#ifdef WITH_TANK_LEVEL
+    PGM_P xml_tank  = PSTR("  <water-tank level=\"%u\" absolute=\"%.2f\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_tank, tankLevel, tankLevelVoltage);
 #endif
 #ifdef WITH_FRONT_ENV_SENSOR
     PGM_P xml_fenv  = PSTR("  <front-env temperature=\"%.2f\" humidity=\"%.2f\"/>\r\n");
@@ -967,6 +1017,10 @@ void serial_report_values() {
   #ifdef WITH_WATER_PUMP_VOLTAGE
     consolePrintln("AnalogV: %.2f", pumpAnalogIn);
   #endif
+  #endif
+  #ifdef WITH_TANK_LEVEL
+    consolePrintln("TankLevel: %u", tankLevel);
+    consolePrintln("TankVolts: %.2f", tankLevelVoltage);
   #endif
   #ifdef WITH_FRONT_ENV_SENSOR
     consolePrintln("Front temperature: %.2f");

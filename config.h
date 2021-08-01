@@ -127,9 +127,20 @@
 #define REAR_ENV_SENSOR_TYPE AM2320_SENSOR_     // type of rear sensor (DHT22 or AM2320)
 #define REAR_ENV_SENSOR_READ_INTERVAL 3000     // DHT22 requires min 2 secs between readings
 
+// generic voltage reading, for both WITH_TANK_LEVEL and WITH_VOLTAGE_MEASURE
+#define VOLTAGE_RAIL_REF 15.0
+#define VOLTAGE_MCURAIL_REF 5.0
+#define VOLTAGE_NUM_SAMPLES 5
+#define VOLTAGE_READ_DELAY 10
+
+// support tank level sensor
+#define WITH_TANK_LEVEL
+#define TANK_LEVEL_PIN ANALOG_IN1_PIN
+#define TANK_LEVEL_READ_INTERVAL 900000        // every 15min
+#define TANK_LEVEL_REF_VOLTAGE VOLTAGE_RAIL_REF  // sensor driven with 15V
+
 // support voltage measurements
 //#define WITH_VOLTAGE_MEASURE
-#define VOLTAGE_NUM_SAMPLES 5
 #define VOLTAGE_READ_INTERVAL 2000
 // ESP8266 have only one analog input port, so a port multiplexer is required
 #if defined(HW_ESP8266) && defined(WITH_VOLTAGE_MEASURE)

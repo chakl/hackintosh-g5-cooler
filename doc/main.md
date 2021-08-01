@@ -166,7 +166,9 @@ We have a brushless DC water pump that can be driven with 3.5V to 9V power suppl
 
 ### Water Tank Level Sensor
 
-[...]
+We use an XKC-25-V sensor to measure the water tank liquid level. The sensor accepts 5-24 Vcc and outputs a voltage between 0 and Vccmax depending on the liquid level. In the software, no drivers are required, it only needs to measure sensor output voltage on an analog MCU pin. In electronics, only a resistor is needed to limit the output voltage to the maximum allowed voltage on the analog input pin (3.3V on ESP, 5V on Arduino).
+
+The resistor value depends on the sensor's Vccmax and the MCU type. We have both 5V MCU rail voltage and 15V power supply voltage. We chose to use 15V because 5V would be on the lower end of the sensor's specification. For max 15V sensor output voltage and an ESP board, we chose a resistor value of 1.22M (1M in series with 220k) in front of the MCU analog input pin.
 
 ### Environment Sensors
 
