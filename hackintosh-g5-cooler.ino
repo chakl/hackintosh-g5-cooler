@@ -1,4 +1,4 @@
-#define SW_VERSION "1.2"
+#define SW_VERSION "1.3"
 
 //---------------------------------------------------------------------------------------------------------------------
 // constants (to get the symbols defined, value does not really matter)
@@ -12,6 +12,8 @@
 #define HC4051_MUX_ 2
 #define PCF8591_MUX_ 3
 #define ADS1115_MUX_ 4
+#define SPIFFS_ 5
+#define LITTLEFS_ 6
 
 // constants for unknown data values
 #define TEMPERATURE_UNKNOWN NaN
@@ -112,6 +114,18 @@ long  lastReadRearEnvSensor    = 0;
   #include <AM2320.h>
   AM2320 rearAM2320Sensor;
 #endif
+#endif
+
+#ifdef WITH_FS
+#if FS_TYPE == SPIFFS_
+  #include <FS.h>
+#endif
+#if FS_TYPE == LITTLEFS_
+  #include "LittleFS.h"
+#endif
+#define USE_FS
+long fs_bytes_total = 0;
+long fs_bytes_used = 0;
 #endif
 
 #ifdef WITH_ESP8266_WIFI
@@ -290,6 +304,10 @@ void setup ()
     init_spi();
 #endif
 
+#ifdef USE_FS
+    init_fs();
+#endif
+
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
     init_analog_mux4051();
 #endif
@@ -446,6 +464,30 @@ void writeSPIvalue(int line, int value) {
     digitalWrite(line, HIGH);
 }
 #endif  // USE_SPI
+
+
+//-------------- FS
+#ifdef USE_FS
+void init_fs() {
+FSInfo fs_info;
+#if FS_TYPE == SPIFFS_
+    if(!SPIFFS.begin()){
+        consolePrintln("Error mounting SPIFFS");
+        return;
+    }
+    SPIFFS.info(fs_info);
+#endif  // SPIFFS
+#if FS_TYPE == LITTLEFS_
+    if(!LittleFS.begin()){
+        consolePrintln("Error mounting LittleFS");
+        return;
+    }
+    LittleFS.info(fs_info);
+#endif  // LITTLEFS
+    fs_bytes_total = fs_info.totalBytes;
+    fs_bytes_used  = fs_info.usedBytes;
+}
+#endif  // USE_FS
 
 
 //-------------- PWM (high frequeny setup)
@@ -772,8 +814,53 @@ const char *  xmlstatus() {
     PGM_P xml_renv  = PSTR("  <rear-env temperature=\"%.2f\" humidity=\"%.2f\"/>\r\n");
     sprintf_P(xmlbuf + strlen(xmlbuf), xml_renv, rearEnvSensorTemperature, rearEnvSensorHumidity);
 #endif
+#ifdef USE_FS
+    PGM_P xml_fs    = PSTR("  <fs total=\"%u\" used=\"%u\"/>\r\n");
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_fs, fs_bytes_total, fs_bytes_used);
+#endif
     sprintf_P(xmlbuf + strlen(xmlbuf), xml_end);
     return xmlbuf;
+}
+
+bool handleFileRead(String path){  // send the right file to the client (if it exists)
+  //Serial.println("handleFileRead: " + path);
+  if(path.endsWith("/")) path += "index.html";           // If a folder is requested, send the index file
+  String contentType = getContentType(path);             // Get the MIME type
+  String pathWithGz = path + ".gz";
+#if FS_TYPE == SPIFFS_
+  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
+    if(SPIFFS.exists(pathWithGz))                          // If there's a compressed version available
+      path += ".gz";                                         // Use the compressed version
+    File file = SPIFFS.open(path, "r");                    // Open the file
+#else
+  if(LittleFS.exists(pathWithGz) || LittleFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
+    if(LittleFS.exists(pathWithGz))                          // If there's a compressed version available
+      path += ".gz";                                         // Use the compressed version
+    File file = LittleFS.open(path, "r");                    // Open the file
+#endif
+    size_t sent = webserver.streamFile(file, contentType);    // Send it to the client
+    file.close();                                          // Close the file again
+    //Serial.println(String("\tSent file: ") + path);
+    return true;
+  }
+  //Serial.println(String("\tFile Not Found: ") + path);
+  return false;                                          // If the file doesn't exist, return false
+}
+
+String getContentType(String filename){
+    if(filename.endsWith(".htm")) return "text/html";
+    else if(filename.endsWith(".html")) return "text/html";
+    else if(filename.endsWith(".css")) return "text/css";
+    else if(filename.endsWith(".js")) return "application/javascript";
+    else if(filename.endsWith(".png")) return "image/png";
+    else if(filename.endsWith(".gif")) return "image/gif";
+    else if(filename.endsWith(".jpg")) return "image/jpeg";
+    else if(filename.endsWith(".ico")) return "image/x-icon";
+    else if(filename.endsWith(".xml")) return "text/xml";
+    else if(filename.endsWith(".pdf")) return "application/x-pdf";
+    else if(filename.endsWith(".zip")) return "application/x-zip";
+    else if(filename.endsWith(".gz")) return "application/x-gzip";
+    return "text/plain";
 }
 
 // Handle Root URI
@@ -781,15 +868,13 @@ void rootPage() {
     webserver.send(200, F("text/plain"), xmlstatus());
 }
 
-// Handle 404
-void notfoundPage(){
-    webserver.send(404, F("text/plain"), F("404: Not found"));
-}
-
 void start_web_server() {
     // define URI handlers
-    webserver.on("/", rootPage);
-    webserver.onNotFound(notfoundPage);
+    webserver.on("/status.xml", rootPage);
+    webserver.onNotFound([]() {                              // If the client requests any URI
+        if (!handleFileRead(webserver.uri()))                // send it if it exists
+            webserver.send(404, F("text/plain"), F("404: Not Found"));  // otherwise, respond with a 404 (Not Found) error
+        });
   #ifdef WITH_REAR_FANS
     webserver.on(UriBraces("/fanspeed={}"), []() {
       String rearFansSpeedPercent = webserver.pathArg(0);

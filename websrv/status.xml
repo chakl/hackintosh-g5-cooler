@@ -18,5 +18,6 @@
   <front-env temperature="F" humidity="F"/>
   <rear-env temperature="F" humidity="F"/>
   <voltage vrail="F" v5="F" vcpu="F"/>
+  <fs total="I" used="I"/>
 </g5-cooler>
 

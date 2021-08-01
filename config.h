@@ -146,6 +146,9 @@
 // support bicolor status LED
 //#define WITH_BICOLOR_STATUS_LED
 
+#define WITH_FS
+#define FS_TYPE LITTLEFS_  // either SPIFFS or LITTLEFS
+
 // support WIFI features if hardware is ESP8266
 #ifdef HW_ESP8266
   // use WIFI (comment out to disable)
@@ -153,8 +156,13 @@
   #ifdef WITH_ESP8266_WIFI
     // run HTTP server
     #define WITH_ESP8266_HTTPSRV
-    #define HTTPSRV_XMLBUFSIZE 1024
-    #define HTTPSRV_PORT 80
+    #ifdef WITH_ESP8266_HTTPSRV
+      #ifndef WITH_FS
+      #error "WITH_ESP8266_HTTPSRV requires WITH_FS"
+      #endif
+      #define HTTPSRV_XMLBUFSIZE 1024
+      #define HTTPSRV_PORT 80
+    #endif
     // support over-the-air updates
     #define WITH_OTA
     #define OTA_PORT 8266

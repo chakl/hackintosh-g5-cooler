@@ -226,9 +226,13 @@ This is used to support a bicolor status LED (green/red) that is mounted on the 
 - `fan n` - set fan speed to n percent (0 < n <= 100)
 - `pump n` - set pump speed to n percent (0 < n <= 100)
 
+##### WITH_FS
+
+`WITH_FS` defines whether a flash file system should be supported. Not available for Arduino hardware (ESP8266/ESP32 only). Required for `WITH_HTTPSRV`.
+
 ##### WITH_ESP8266_WIFI
 
-`WITH_ESP8266_WIFI` will be defined automatically if WiFi capable hardware is detected. Comment out to explicitly disable WiFi.
+`WITH_ESP8266_WIFI` will be defined automatically if WiFi capable hardware is detected. Comment out to explicitly disable WiFi. Requires `WITH_FS`.
 
 ##### WITH_HTTPSRV
 
