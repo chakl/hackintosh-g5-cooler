@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 SRC=./websrv
 TARGET=./data

@@ -28,7 +28,7 @@
 //---------------------------------------------------------------------------------------------------------------------
 // board definitions (supported: Arduino, ESP8266, ESP32)
 //---------------------------------------------------------------------------------------------------------------------
-#ifdef HW_ARDUINO
+#ifdef HW_ARDUINO  // deprecated since Aug 1 2021
   #define HW_NAME "Arduino"
   #define HW_CPUFREQ 16  // fixed, cannot query
   #define ANALOG_WRITE_RANGE 256
@@ -141,15 +141,15 @@ long fs_bytes_used = 0;
 IPAddress ip;
 String ssid;
 #ifdef WITH_OTA
-#include <ArduinoOTA.h>
-boolean ota_enable = true;
+  #include <ArduinoOTA.h>
+  boolean ota_enable = true;
 #endif
 #ifdef WITH_ESP8266_HTTPSRV
-#include <ESP8266WebServer.h>
-#include <uri/UriBraces.h>
-//#include <uri/UriRegex.h>
-ESP8266WebServer webserver(HTTPSRV_PORT);
-char xmlbuf[HTTPSRV_XMLBUFSIZE];
+  #include <ESP8266WebServer.h>
+  #include <uri/UriBraces.h>
+  //#include <uri/UriRegex.h>
+  ESP8266WebServer webserver(HTTPSRV_PORT);
+  char xmlbuf[HTTPSRV_XMLBUFSIZE];
 #endif
 #endif  // WITH_ESP8266_WIFI
 
@@ -191,80 +191,66 @@ ADS1115_WE adc(I2C_ADDRESS);
 #include "SerialCommands.h"
 char serial_command_buffer_[16];
 //// handler callback functions must be defined here, not in the functions section hear the end
-void cmd_unrecognized(SerialCommands* sender, const char* cmd)
-{
+// unrecognized command
+void cmd_unrecognized(SerialCommands* sender, const char* cmd) {
   sender->GetSerial()->print(F("Unrecognized command ["));
   sender->GetSerial()->print(cmd);
   sender->GetSerial()->println(F("]"));
 }
 SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
-
-void cmd_get_status(SerialCommands* sender)
-{
+// status command
+void cmd_get_status(SerialCommands* sender) {
   serial_report_values();
 }
 SerialCommand cmd_get_status_("status", cmd_get_status);
-
-void cmd_set_contrep(SerialCommands* sender)
-{
+// contrep command
+void cmd_set_contrep(SerialCommands* sender) {
   char* contrep = sender->Next();
-  if (contrep == NULL)
-  {
+  if (contrep == NULL) {
     // report setting
     sender->GetSerial()->print(F("Continuous reporting: "));
     sender->GetSerial()->println(continuous_reporting);
   }
-  else if (strcmp(contrep, "on") == 0)
-  {
+  else if (strcmp(contrep, "on") == 0) {
     // enable continuous reporting
     continuous_reporting = true;
   }
-  else if (strcmp(contrep, "off") == 0)
-  {
+  else if (strcmp(contrep, "off") == 0) {
     // disable continuous reporting
     continuous_reporting = false;
   }
-  else
-  {
+  else {
     sender->GetSerial()->println(F("ERROR invalid contrep "));
   }
 }
 SerialCommand cmd_set_contrep_("contrep", cmd_set_contrep);
-
+// ota command
 #ifdef WITH_OTA
-void cmd_set_ota(SerialCommands* sender)
-{
+void cmd_set_ota(SerialCommands* sender) {
   char* ota = sender->Next();
-  if (ota == NULL)
-  {
+  if (ota == NULL) {
     // report setting
     sender->GetSerial()->print(F("OTA: "));
     sender->GetSerial()->println(ota_enable);
   }
-  else if (strcmp(ota, "on") == 0)
-  {
+  else if (strcmp(ota, "on") == 0) {
     // enable OTA
     ota_enable = true;
   }
-  else if (strcmp(ota, "off") == 0)
-  {
+  else if (strcmp(ota, "off") == 0) {
     // disable OTA
     ota_enable = false;
   }
-  else
-  {
+  else {
     sender->GetSerial()->println(F("ERROR invalid ota "));
   }
 }
 SerialCommand cmd_set_ota_("ota", cmd_set_ota);
 #endif
-
 #ifdef WITH_REAR_FANS
-void cmd_set_fan(SerialCommands* sender)
-{
+void cmd_set_fan(SerialCommands* sender) {
   char* fanspeed = sender->Next();
-  if (fanspeed == NULL)
-  {
+  if (fanspeed == NULL) {
     sender->GetSerial()->println(F("ERROR no fan speed "));
     return;
   }
@@ -272,13 +258,10 @@ void cmd_set_fan(SerialCommands* sender)
 }
 SerialCommand cmd_set_fan_("fan", cmd_set_fan);
 #endif
-
 #ifdef WITH_WATER_PUMP
-void cmd_set_pump(SerialCommands* sender)
-{
+void cmd_set_pump(SerialCommands* sender) {
   char* pumpspeed = sender->Next();
-  if (pumpspeed == NULL)
-  {
+  if (pumpspeed == NULL) {
     sender->GetSerial()->println(F("ERROR no pump speed "));
     return;
   }
@@ -371,8 +354,8 @@ void loop()
 
 #ifdef WITH_OTA
     if (ota_enable) {
-      // check for over-the-air updates
-      ArduinoOTA.handle();
+        // check for over-the-air updates
+        ArduinoOTA.handle();
     }
 #endif
 
@@ -520,51 +503,19 @@ void init_pwm() {
   #ifdef HW_ESP32
   #endif
 }
-#ifdef HW_ARDUINO
-/*
- * boilerplate code to set PWM frequency on Arduino
- */
-void set_pwm_freq_arduino()
-{
-  consolePrintln("Initialize PWM frequency...");
-// For Arduino Uno, Nano, YourDuino RoboRED, Mini Driver, Lilly Pad and any other board using ATmega 8, 168 or 328
-//---------------------------------------------- Set PWM frequency for D5 & D6 -------------------------------
-//NOTE: Changing this timer 0 affects millis() and delay!
-//TCCR0B = TCCR0B & B11111000 | B00000001;    // set timer 0 divisor to     1 for PWM frequency of 62500.00 Hz
-//TCCR0B = TCCR0B & B11111000 | B00000010;    // set timer 0 divisor to     8 for PWM frequency of  7812.50 Hz
-  TCCR0B = TCCR0B & B11111000 | B00000011;    // set timer 0 divisor to    64 for PWM frequency of   976.56 Hz (The DEFAULT)
-//TCCR0B = TCCR0B & B11111000 | B00000100;    // set timer 0 divisor to   256 for PWM frequency of   244.14 Hz
-//TCCR0B = TCCR0B & B11111000 | B00000101;    // set timer 0 divisor to  1024 for PWM frequency of    61.04 Hz
-//---------------------------------------------- Set PWM frequency for D9 & D10 ------------------------------
-//TCCR1B = TCCR1B & B11111000 | B00000001;    // set timer 1 divisor to     1 for PWM frequency of 31372.55 Hz
-//TCCR1B = TCCR1B & B11111000 | B00000010;    // set timer 1 divisor to     8 for PWM frequency of  3921.16 Hz
-  TCCR1B = TCCR1B & B11111000 | B00000011;    // set timer 1 divisor to    64 for PWM frequency of   490.20 Hz (The DEFAULT)
-//TCCR1B = TCCR1B & B11111000 | B00000100;    // set timer 1 divisor to   256 for PWM frequency of   122.55 Hz
-//TCCR1B = TCCR1B & B11111000 | B00000101;    // set timer 1 divisor to  1024 for PWM frequency of    30.64 Hz
-//---------------------------------------------- Set PWM frequency for D3 & D11 ------------------------------
-  TCCR2B = TCCR2B & B11111000 | B00000001;    // set timer 2 divisor to     1 for PWM frequency of 31372.55 Hz
-//TCCR2B = TCCR2B & B11111000 | B00000010;    // set timer 2 divisor to     8 for PWM frequency of  3921.16 Hz
-//TCCR2B = TCCR2B & B11111000 | B00000011;    // set timer 2 divisor to    32 for PWM frequency of   980.39 Hz
-//TCCR2B = TCCR2B & B11111000 | B00000100;    // set timer 2 divisor to    64 for PWM frequency of   490.20 Hz (The DEFAULT)
-//TCCR2B = TCCR2B & B11111000 | B00000101;    // set timer 2 divisor to   128 for PWM frequency of   245.10 Hz
-//TCCR2B = TCCR2B & B11111000 | B00000110;    // set timer 2 divisor to   256 for PWM frequency of   122.55 Hz
-//TCCR2B = TCCR2B & B11111000 | B00000111;    // set timer 2 divisor to  1024 for PWM frequency of    30.64 Hz
-}
-#endif  // HW_ARDUINO
 #endif  // WITH_HIGH_PWMFREQ
 #endif  // USE_PWM
 
+
 //-------------- ANALOG_MUX
 #if defined(ANALOG_MUX_TYPE) && ANALOG_MUX_TYPE == HC4051_MUX_
-void init_analog_mux4051()
-{
+void init_analog_mux4051() {
     pinMode (muxOut, OUTPUT);
     pinMode (muxAddressA, OUTPUT);
     pinMode (muxAddressB, OUTPUT);
     pinMode (muxAddressC, OUTPUT);
 }
-void readAnalogMux4051()
-{
+void readAnalogMux4051() {
 #ifdef WITH_VOLTAGE_MEASURE
     railVoltage     = readVoltage(MUX_PIN_RAIL_VOLTAGE);
     mcuRailVoltage  = readVoltage(MUX_PIN_MCURAIL_VOLTAGE);
@@ -579,8 +530,7 @@ void readAnalogMux4051()
     lastReadVoltages = millis();
 }
 #ifdef WITH_VOLTAGE_MEASURE
-float readVoltage (const byte which)
-{
+float readVoltage (const byte which) {
     // select correct MUX channel
     digitalWrite (muxAddressA, (which & 1) ? HIGH : LOW);  // low-order bit
     digitalWrite (muxAddressB, (which & 2) ? HIGH : LOW);
@@ -789,8 +739,7 @@ void read_rear_am2320() {
 
 //-------------- GENERIC VOLTAGE MEASUREMENT
 #if defined(WITH_TANK_LEVEL) || defined(WITH_VOLTAGE_MEASURE)
-float generic_voltage_read(int pin)
-{
+float generic_voltage_read(int pin) {
     // read selected analog pin: take a number of analog samples and add them up
     int sum       = 0;      // sum of samples taken
     int count     = 0;      // current sample number
@@ -809,8 +758,7 @@ float generic_voltage_read(int pin)
 
 //-------------- TANK LEVEL
 #ifdef WITH_TANK_LEVEL
-void read_tank_level()
-{
+void read_tank_level() {
     tankLevel = generic_voltage_read(TANK_LEVEL_PIN) / ANALOG_READ_RANGE;
     tankLevelVoltage = tankLevel * TANK_LEVEL_REF_VOLTAGE;
     lastReadTankLevel    = millis();
@@ -827,8 +775,8 @@ void connect_wifi_esp8266()
     consolePrintln("Connecting to %s", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
+        delay(500);
+        Serial.print(".");
     }
     ip = WiFi.localIP();
     ssid = WiFi.SSID();
@@ -875,28 +823,27 @@ const char *  xmlstatus() {
 }
 
 bool handleFileRead(String path){  // send the right file to the client (if it exists)
-  //Serial.println("handleFileRead: " + path);
-  if(path.endsWith("/")) path += "index.html";           // If a folder is requested, send the index file
-  String contentType = getContentType(path);             // Get the MIME type
-  String pathWithGz = path + ".gz";
+    if(path.endsWith("/")) path += "index.html";           // If a folder is requested, send the index file
+    String contentType = getContentType(path);             // Get the MIME type
+    String pathWithGz = path + ".gz";
 #if FS_TYPE == SPIFFS_
-  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
-    if(SPIFFS.exists(pathWithGz))                          // If there's a compressed version available
-      path += ".gz";                                         // Use the compressed version
-    File file = SPIFFS.open(path, "r");                    // Open the file
+    if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
+        if(SPIFFS.exists(pathWithGz)) {                    // If there's a compressed version available
+            path += ".gz";                                 // Use the compressed version
+        }
+        File file = SPIFFS.open(path, "r");                // Open the file
 #else
-  if(LittleFS.exists(pathWithGz) || LittleFS.exists(path)){  // If the file exists, either as a compressed archive, or normal
-    if(LittleFS.exists(pathWithGz))                          // If there's a compressed version available
-      path += ".gz";                                         // Use the compressed version
-    File file = LittleFS.open(path, "r");                    // Open the file
+    if(LittleFS.exists(pathWithGz) || LittleFS.exists(path)){
+        if(LittleFS.exists(pathWithGz)) {
+            path += ".gz";
+        }
+        File file = LittleFS.open(path, "r");
 #endif
-    size_t sent = webserver.streamFile(file, contentType);    // Send it to the client
-    file.close();                                          // Close the file again
-    //Serial.println(String("\tSent file: ") + path);
-    return true;
-  }
-  //Serial.println(String("\tFile Not Found: ") + path);
-  return false;                                          // If the file doesn't exist, return false
+        size_t sent = webserver.streamFile(file, contentType);  // Send it to the client
+        file.close();                                           // Close the file again
+        return true;
+    }
+    return false;                                          // If the file doesn't exist, return false
 }
 
 String getContentType(String filename){
@@ -929,10 +876,10 @@ void start_web_server() {
         });
   #ifdef WITH_REAR_FANS
     webserver.on(UriBraces("/fanspeed={}"), []() {
-      String rearFansSpeedPercent = webserver.pathArg(0);
-      long fspeed = rearFansSpeedPercent.toInt();
-      setRearFansSpeedPercent(fspeed);
-      rootPage();
+        String rearFansSpeedPercent = webserver.pathArg(0);
+        long fspeed = rearFansSpeedPercent.toInt();
+        setRearFansSpeedPercent(fspeed);
+        rootPage();
     });
   #endif
   #ifdef WITH_WATER_PUMP
@@ -957,33 +904,33 @@ void init_esp8266_wifi() {
     ArduinoOTA.setPassword(OTA_PASS);
     //ArduinoOTA.setPasswordHash(OTA_PASS_HASH);
     ArduinoOTA.onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH) {
-        type = F("sketch");
-      } else { // U_FS
-        type = F("filesystem");
-      }
-      // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-      consolePrintln("Start updating %s", type);
-    });
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH) {
+            type = F("sketch");
+        } else { // U_FS
+            type = F("filesystem");
+        }
+        // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+        consolePrintln("Start updating %s", type);
+        });
     ArduinoOTA.onEnd([]() {
-      consolePrintln("\nEnd");
+        consolePrintln("\nEnd");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      consolePrintln("Progress: %u\r", progress / (total / 100));
+        consolePrintln("Progress: %u\r", progress / (total / 100));
     });
     ArduinoOTA.onError([](ota_error_t error) {
-      if (error == OTA_AUTH_ERROR) {
-        consolePrintln("Auth Failed");
-      } else if (error == OTA_BEGIN_ERROR) {
-        consolePrintln("Begin Failed");
-      } else if (error == OTA_CONNECT_ERROR) {
-        consolePrintln("Connect Failed");
-      } else if (error == OTA_RECEIVE_ERROR) {
-        consolePrintln("Receive Failed");
-      } else if (error == OTA_END_ERROR) {
-        consolePrintln("End Failed");
-      }
+        if (error == OTA_AUTH_ERROR) {
+            consolePrintln("Auth Failed");
+        } else if (error == OTA_BEGIN_ERROR) {
+            consolePrintln("Begin Failed");
+        } else if (error == OTA_CONNECT_ERROR) {
+            consolePrintln("Connect Failed");
+        } else if (error == OTA_RECEIVE_ERROR) {
+            consolePrintln("Receive Failed");
+        } else if (error == OTA_END_ERROR) {
+            consolePrintln("End Failed");
+        }
     });
     consolePrintln("Start OTA on port %u", OTA_PORT);
     ArduinoOTA.begin();
@@ -1053,20 +1000,6 @@ void serial_report_values() {
 #endif  // WITH_SERIAL
 
 //-------------- SYSTEM (memory, CPU speed)
-#ifdef HW_ARDUINO
-//// report free heap memory on Arduino, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
-int freeMemory() {
-  char top;
-#ifdef __arm__
-  return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-  return &top - __brkval;
-#else  // __arm__
-  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
-}
-#endif  // HW_ARDUINO
-
 int getFreeHeapMem() {
 #ifdef HW_ARDUINO
     return freeMemory();
@@ -1091,9 +1024,9 @@ int getCpuSpeed() {
 #endif
 }
 
-// generic println() function
-void consolePrintln(const char *format, ...)
-{
+
+//-------------- GENERIC ROUTINES
+void consolePrintln(const char *format, ...) {
     char buffer[256];
     va_list args;
     va_start(args, format);
@@ -1103,3 +1036,48 @@ void consolePrintln(const char *format, ...)
     Serial.println(buffer);
 #endif
 }
+
+
+//-------------- ARDUINO SPECIFIC (deprecated)
+#ifdef HW_ARDUINO
+//// report free heap memory on Arduino, from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
+int freeMemory() {
+    char top;
+#ifdef __arm__
+    return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    return &top - __brkval;
+#else  // __arm__
+    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+/*
+ * boilerplate code to set PWM frequency on Arduino
+ */
+void set_pwm_freq_arduino()
+{
+  consolePrintln("Initialize PWM frequency...");
+// For Arduino Uno, Nano, YourDuino RoboRED, Mini Driver, Lilly Pad and any other board using ATmega 8, 168 or 328
+//---------------------------------------------- Set PWM frequency for D5 & D6 -------------------------------
+//NOTE: Changing this timer 0 affects millis() and delay!
+//TCCR0B = TCCR0B & B11111000 | B00000001;    // set timer 0 divisor to     1 for PWM frequency of 62500.00 Hz
+//TCCR0B = TCCR0B & B11111000 | B00000010;    // set timer 0 divisor to     8 for PWM frequency of  7812.50 Hz
+  TCCR0B = TCCR0B & B11111000 | B00000011;    // set timer 0 divisor to    64 for PWM frequency of   976.56 Hz (The DEFAULT)
+//TCCR0B = TCCR0B & B11111000 | B00000100;    // set timer 0 divisor to   256 for PWM frequency of   244.14 Hz
+//TCCR0B = TCCR0B & B11111000 | B00000101;    // set timer 0 divisor to  1024 for PWM frequency of    61.04 Hz
+//---------------------------------------------- Set PWM frequency for D9 & D10 ------------------------------
+//TCCR1B = TCCR1B & B11111000 | B00000001;    // set timer 1 divisor to     1 for PWM frequency of 31372.55 Hz
+//TCCR1B = TCCR1B & B11111000 | B00000010;    // set timer 1 divisor to     8 for PWM frequency of  3921.16 Hz
+  TCCR1B = TCCR1B & B11111000 | B00000011;    // set timer 1 divisor to    64 for PWM frequency of   490.20 Hz (The DEFAULT)
+//TCCR1B = TCCR1B & B11111000 | B00000100;    // set timer 1 divisor to   256 for PWM frequency of   122.55 Hz
+//TCCR1B = TCCR1B & B11111000 | B00000101;    // set timer 1 divisor to  1024 for PWM frequency of    30.64 Hz
+//---------------------------------------------- Set PWM frequency for D3 & D11 ------------------------------
+  TCCR2B = TCCR2B & B11111000 | B00000001;    // set timer 2 divisor to     1 for PWM frequency of 31372.55 Hz
+//TCCR2B = TCCR2B & B11111000 | B00000010;    // set timer 2 divisor to     8 for PWM frequency of  3921.16 Hz
+//TCCR2B = TCCR2B & B11111000 | B00000011;    // set timer 2 divisor to    32 for PWM frequency of   980.39 Hz
+//TCCR2B = TCCR2B & B11111000 | B00000100;    // set timer 2 divisor to    64 for PWM frequency of   490.20 Hz (The DEFAULT)
+//TCCR2B = TCCR2B & B11111000 | B00000101;    // set timer 2 divisor to   128 for PWM frequency of   245.10 Hz
+//TCCR2B = TCCR2B & B11111000 | B00000110;    // set timer 2 divisor to   256 for PWM frequency of   122.55 Hz
+//TCCR2B = TCCR2B & B11111000 | B00000111;    // set timer 2 divisor to  1024 for PWM frequency of    30.64 Hz
+}
+#endif
