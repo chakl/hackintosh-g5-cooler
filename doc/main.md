@@ -26,6 +26,8 @@ Most Arduino boards do not have builtin WiFi. One way to add WiFi support to an 
 
 We use PWM output from the MCU to drive two LM317 regulators to control the fan speed and water pump power. The MCU PWM signal gets converted into a (more or less) constant voltage, with gets amplified to the required level using an LM358 OpAmp. We have also experimented with digital potentiometers (MCP4162) to drive the LM317 output voltages, but these devices are rather expensive compared to the PWM/lowpass/OpAmp circuit. They will also need 5 pins for SPI. We did not follow that route further.
 
+**NOTE** As of Aug 1 2021 the Arduino MCU platform is deprecated. It does not support features that we consider essential (Wifi, HTTP server, OTA, flash FS), and memory is limited. The existing code to support Arduino MCUs is left intact, but new features will not be tested for Arduino MCUs.
+
 #### Design Rev. 2 (ESP8266, WiFi, OTA, Sensors, Front Panel)
 
 After some redesign we wanted to support WiFi, so the system could interface to home automation systems or be controlled by a mobile app. The obvious choice was using a board from the ESP8266 family, which include WiFi hardware. We used an ESP-12 board (Wemos D1, similar boards such as NodeMCU should work as well). The small ESP-01 boards might work with very limited functionality, as they need further port multiplexer components. We did not test this yet.
@@ -186,6 +188,8 @@ AM2320 sensors are connected by 4 lines (SDA, SCL, 5V Vcc and GND). They use the
 ### Supported Boards
 
 The Arduino sketch is designed to support Arduino boards with ATmega328 CPU (Uno, Nano, Mini Pro) and ESP8266 boards (ESP8266-12, Wemos D1 mini, NodeMCU or similar). We are working to support ESP32 boards. Further boards might be added.
+
+**NOTE** As of Aug 1 2021 the Arduino MCU platform is deprecated (see above).
 
 ### Components and Configuration
 
