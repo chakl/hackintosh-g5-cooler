@@ -139,6 +139,7 @@ long fs_bytes_used = 0;
 #ifdef WITH_ESP8266_WIFI
 #include <ESP8266WiFi.h>
 IPAddress ip;
+String ssid;
 #ifdef WITH_OTA
 #include <ArduinoOTA.h>
 boolean ota_enable = true;
@@ -830,7 +831,8 @@ void connect_wifi_esp8266()
       Serial.print(".");
     }
     ip = WiFi.localIP();
-    consolePrintln("\r\nConnected to %s, IP address: %s", WIFI_SSID, ip.toString().c_str());
+    ssid = WiFi.SSID();
+    consolePrintln("\r\nConnected to %s, IP address: %s", ssid.c_str(), ip.toString().c_str());
 }
 
 #ifdef WITH_ESP8266_HTTPSRV
@@ -842,7 +844,7 @@ const char *  xmlstatus() {
     PGM_P xml_wifi  = PSTR("  <wifi ssid=\"%s\" ip=\"%s\"/>\r\n");
     PGM_P xml_mem   = PSTR("  <memory heap=\"%u\" fragmentation=\"%u\"/>\r\n");
     sprintf_P(xmlbuf, xml_begin, HW_NAME, getCpuSpeed(), millis());
-    sprintf_P(xmlbuf + strlen(xmlbuf), xml_wifi, WIFI_SSID, ip.toString().c_str());
+    sprintf_P(xmlbuf + strlen(xmlbuf), xml_wifi, ssid.c_str(), ip.toString().c_str());
     sprintf_P(xmlbuf + strlen(xmlbuf), xml_mem, freeHeapMem, heapFragmentation);
 #ifdef WITH_REAR_FANS
     PGM_P xml_rfans = PSTR("  <rear-fans speed=\"%u\" pwm=\"%u\"/>\r\n");
